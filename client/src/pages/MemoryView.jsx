@@ -4,11 +4,11 @@ import {
   Search,
   Plus,
   Trash2,
-  Edit2,
   HardDrive,
   UserCheck,
   Bot,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -32,7 +32,6 @@ export function MemoryView() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingMemory, setEditingMemory] = useState(null);
   const [newContent, setNewContent] = useState('');
   const [newCategory, setNewCategory] = useState('Persönliches');
   const [newConfidence, setNewConfidence] = useState(1.0);
@@ -107,48 +106,57 @@ export function MemoryView() {
   };
 
   return (
-    <div className="max-w-md mx-auto w-full px-4 pt-2 pb-24 space-y-4">
-      {/* Muse-Style Storage Card */}
-      <div className="muse-card rounded-[26px] p-5 space-y-3">
+    <div className="max-w-2xl mx-auto w-full px-4 pt-4 pb-24 md:pb-8 space-y-5">
+      {/* Max LTM (Long Time Memory) Header Card */}
+      <div className="muse-card rounded-[28px] p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-main tracking-tight">Max Memory Storage</h2>
-            <p className="text-xs text-muted mt-0.5">
-              {storage ? `${storage.formattedUsed} / ${storage.formattedMax}` : 'Laden...'}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600">
+              <Brain className="w-6 h-6 stroke-[2]" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-main tracking-tight">Max LTM</h2>
+              <p className="text-xs text-muted font-medium">Long Time Memory (Persistenter Speicher)</p>
+            </div>
           </div>
-          <span className="px-3 py-1 rounded-full bg-subtle text-[11px] font-semibold text-main">
+          <span className="px-3.5 py-1.5 rounded-full bg-subtle text-xs font-bold text-main">
             {storage?.count || 0} Fakten
           </span>
         </div>
 
-        {/* Minimal Progress Bar */}
-        <div className="w-full bg-subtle rounded-full h-2 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-[#1d1d1f] dark:bg-white transition-all duration-500"
-            style={{ width: `${Math.min(100, Math.max(1, storage?.usedPercentage || 0))}%` }}
-          />
+        {/* Storage Bar (1 GB Limit) */}
+        <div>
+          <div className="flex items-center justify-between text-xs text-muted font-medium mb-1.5">
+            <span>Speicherverbrauch</span>
+            <span>{storage ? `${storage.formattedUsed} / ${storage.formattedMax}` : 'Laden...'}</span>
+          </div>
+          <div className="w-full bg-subtle rounded-full h-2.5 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-amber-500 transition-all duration-500"
+              style={{ width: `${Math.min(100, Math.max(1, storage?.usedPercentage || 0))}%` }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Action & Search Pill */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 muse-pill rounded-full px-4 py-2 flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
+        <div className="flex-1 muse-pill rounded-full px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
           <Search className="w-4 h-4 text-muted flex-shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Erinnerungen suchen..."
-            className="w-full bg-transparent border-none outline-none text-xs text-main placeholder:text-muted"
+            placeholder="Max LTM durchsuchen..."
+            className="w-full bg-transparent border-none outline-none text-xs text-main placeholder:text-muted font-medium"
           />
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="w-10 h-10 rounded-full muse-pill flex items-center justify-center text-main hover:scale-105 active:scale-95 transition-all flex-shrink-0"
-          title="Erinnerung hinzufügen"
+          className="w-11 h-11 rounded-full muse-pill flex items-center justify-center text-main hover:text-amber-600 active:scale-95 transition-all flex-shrink-0 shadow-sm"
+          title="Fakt manuell hinzufügen"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>
 
@@ -158,7 +166,7 @@ export function MemoryView() {
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
               selectedCategory === cat
                 ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] shadow-sm'
                 : 'muse-pill text-muted hover:text-main'
@@ -170,12 +178,13 @@ export function MemoryView() {
       </div>
 
       {/* Memory List */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {loading ? (
-          <div className="text-center py-10 text-xs text-muted">Lade Gedächtnis...</div>
+          <div className="text-center py-12 text-xs text-muted font-medium">Lade Max LTM...</div>
         ) : memories.length === 0 ? (
-          <div className="muse-card rounded-[26px] p-6 text-center text-muted text-xs">
-            Noch keine Erinnerungen vorhanden.
+          <div className="muse-card rounded-[28px] p-8 text-center text-muted text-xs space-y-1">
+            <p className="font-bold text-main text-sm">Noch keine LTM-Einträge</p>
+            <p>Sobald du mit Max sprichst, merkt er sich wichtige Dinge automatisch.</p>
           </div>
         ) : (
           memories.map((m) => {
@@ -183,26 +192,26 @@ export function MemoryView() {
             return (
               <div
                 key={m.id}
-                className="muse-card rounded-[22px] p-4 space-y-1.5 transition-transform hover:scale-[1.01]"
+                className="muse-card rounded-[24px] p-5 space-y-2 transition-transform hover:scale-[1.01]"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2.5 py-0.5 rounded-full bg-subtle text-[10px] font-semibold text-main">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full bg-subtle text-[11px] font-bold text-main">
                       {m.category}
                     </span>
-                    <span className="text-[10px] text-muted flex items-center gap-1">
-                      {isUserOrigin ? <UserCheck className="w-3 h-3" /> : <Bot className="w-3 h-3" />}
-                      {isUserOrigin ? 'Nutzer' : 'Max'}
+                    <span className="text-[11px] text-muted flex items-center gap-1 font-medium">
+                      {isUserOrigin ? <UserCheck className="w-3.5 h-3.5 text-blue-500" /> : <Bot className="w-3.5 h-3.5 text-amber-500" />}
+                      {isUserOrigin ? 'Nutzer-Aussage' : 'Max-LTM'}
                     </span>
                   </div>
                   <button
                     onClick={() => handleDeleteMemory(m.id)}
-                    className="p-1 text-muted hover:text-red-500 transition-colors"
+                    className="p-1.5 text-muted hover:text-red-500 rounded-lg hover:bg-black/5 transition-colors"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-xs text-main leading-relaxed pt-0.5">{m.content}</p>
+                <p className="text-sm text-main leading-relaxed font-medium pt-0.5">{m.content}</p>
               </div>
             );
           })
@@ -212,26 +221,26 @@ export function MemoryView() {
       {/* Add Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="muse-card rounded-[30px] max-w-sm w-full p-6 space-y-4 animate-scale-up">
+          <div className="muse-card rounded-[32px] max-w-sm w-full p-6 space-y-4 shadow-2xl animate-scale-up">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-main">Erinnerung anlegen</h3>
+              <h3 className="text-base font-bold text-main">Fakt in Max LTM anlegen</h3>
               <button onClick={() => setShowAddModal(false)} className="p-1 text-muted hover:text-main">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCreateMemory} className="space-y-3">
+            <form onSubmit={handleCreateMemory} className="space-y-3.5">
               <textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
-                placeholder="Was soll Max sich merken?"
+                placeholder="Was soll Max sich dauerhaft merken?"
                 required
                 rows={3}
-                className="w-full p-3 rounded-2xl bg-subtle text-xs text-main placeholder:text-muted outline-none resize-none"
+                className="w-full p-3.5 rounded-2xl bg-subtle text-xs text-main placeholder:text-muted outline-none resize-none font-medium"
               />
               <select
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
-                className="w-full p-2.5 rounded-2xl bg-subtle text-xs text-main outline-none"
+                className="w-full p-3 rounded-2xl bg-subtle text-xs text-main font-semibold outline-none"
               >
                 {CATEGORIES.filter((c) => c !== 'ALL').map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -248,7 +257,7 @@ export function MemoryView() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !newContent.trim()}
-                  className="px-5 py-2 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-sm"
+                  className="px-5 py-2.5 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-bold shadow-sm"
                 >
                   Speichern
                 </button>

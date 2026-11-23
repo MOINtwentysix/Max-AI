@@ -33,6 +33,7 @@ export function initDatabase() {
       password_hash TEXT NOT NULL,
       role TEXT NOT NULL CHECK(role IN ('ADMIN', 'USER')),
       avatar_color TEXT DEFAULT '#3B82F6',
+      first_name TEXT DEFAULT '',
       is_locked INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -51,7 +52,7 @@ export function initDatabase() {
       FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
     );
 
-    -- Memories table
+    -- Memories table (Max LTM - Long Time Memory)
     CREATE TABLE IF NOT EXISTS memories (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -79,12 +80,20 @@ export function initDatabase() {
     );
   `);
 
+  // Safe migration: Add first_name column to users if table already existed without it
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN first_name TEXT DEFAULT '';`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
   // Default global settings
   const defaultSettings = [
     ['registration_mode', 'PUBLIC'], // 'PUBLIC' or 'INVITE_ONLY'
-    ['ollama_base_url', process.env.OLLAMA_BASE_URL || 'http://localhost:11434'],
+    ['maintenance_mode', 'false'],   // 'true' or 'false'
+    ['ollama_base_url', process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'],
     ['ollama_model', process.env.OLLAMA_MODEL || 'llama3.2:latest'],
-    ['system_prompt', 'Du bist Max, ein persönlicher, empathischer und kluger digitaler Begleiter. Du sprichst auf Deutsch, bist freundlich, präzise und hilfst deinem Nutzer im Alltag und bei Projekten.'],
+    ['system_prompt', 'Du bist Max, ein persönlicher, empathischer und kluger digitaler Begleiter. Antworte auf Deutsch, präzise und hilfsbereit.'],
     ['temperature', '0.7'],
     ['mcp_enabled', 'false'],
     ['mcp_max_servers_per_user', '5'],

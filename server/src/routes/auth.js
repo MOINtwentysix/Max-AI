@@ -16,12 +16,14 @@ const authLimiter = rateLimit({
   message: { error: 'Zu viele Versuche von dieser IP. Bitte warte etwas.' }
 });
 
-// GET /api/auth/mode - Public info on registration mode
+// GET /api/auth/mode - Public info on registration mode and maintenance
 authRouter.get('/mode', (req, res) => {
   const mode = getSetting('registration_mode') || 'PUBLIC';
+  const maintenance = getSetting('maintenance_mode') === 'true';
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
   res.json({
     registrationMode: mode,
+    maintenanceMode: maintenance,
     isFirstUser: userCount === 0
   });
 });
@@ -63,7 +65,7 @@ authRouter.post('/verify-code', authLimiter, (req, res) => {
 
 // POST /api/auth/register
 authRouter.post('/register', authLimiter, async (req, res) => {
-  const { username, email, password, inviteCode } = req.body;
+  const { username, email, password, firstName, inviteCode } = req.body;
 
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Benutzername, E-Mail und Passwort sind erforderlich.' });
@@ -71,6 +73,7 @@ authRouter.post('/register', authLimiter, async (req, res) => {
 
   const cleanUsername = String(username).trim();
   const cleanEmail = String(email).trim().toLowerCase();
+  const cleanFirstName = String(firstName || '').trim();
 
   if (cleanUsername.length < 3 || cleanUsername.length > 30) {
     return res.status(400).json({ error: 'Benutzername muss zwischen 3 und 30 Zeichen lang sein.' });
@@ -120,9 +123,9 @@ authRouter.post('/register', authLimiter, async (req, res) => {
 
   try {
     db.prepare(`
-      INSERT INTO users (id, username, email, password_hash, role, avatar_color)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(userId, cleanUsername, cleanEmail, passwordHash, role, '#3B82F6');
+      INSERT INTO users (id, username, email, password_hash, role, avatar_color, first_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, cleanUsername, cleanEmail, passwordHash, role, '#3B82F6', cleanFirstName);
 
     if (inviteCodeRecord) {
       db.prepare(`
@@ -132,7 +135,7 @@ authRouter.post('/register', authLimiter, async (req, res) => {
       `).run(inviteCodeRecord.id);
     }
 
-    logAudit(userId, 'USER_REGISTERED', { username: cleanUsername, email: cleanEmail, role }, req.ip);
+    logAudit(userId, 'USER_REGISTERED', { username: cleanUsername, email: cleanEmail, role, first_name: cleanFirstName }, req.ip);
 
     const token = jwt.sign({ userId, username: cleanUsername, role }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -143,6 +146,7 @@ authRouter.post('/register', authLimiter, async (req, res) => {
         id: userId,
         username: cleanUsername,
         email: cleanEmail,
+        first_name: cleanFirstName,
         role,
         avatar_color: '#3B82F6'
       }
@@ -175,6 +179,15 @@ authRouter.post('/login', authLimiter, async (req, res) => {
     return res.status(403).json({ error: 'Dieser Account wurde gesperrt. Bitte wende dich an den Administrator.' });
   }
 
+  // Check Maintenance Mode
+  const maintenanceActive = getSetting('maintenance_mode') === 'true';
+  if (maintenanceActive && user.role !== 'ADMIN') {
+    return res.status(503).json({
+      error: 'Max befindet sich derzeit im Wartungsmodus. Nur Administratoren können sich aktuell anmelden.',
+      maintenance: true,
+    });
+  }
+
   const isMatch = await bcrypt.compare(password, user.password_hash);
   if (!isMatch) {
     logAudit(user.id, 'LOGIN_FAILED', { reason: 'Wrong password' }, req.ip);
@@ -192,6 +205,7 @@ authRouter.post('/login', authLimiter, async (req, res) => {
       username: user.username,
       email: user.email,
       role: user.role,
+      first_name: user.first_name || '',
       avatar_color: user.avatar_color
     }
   });
@@ -204,6 +218,7 @@ authRouter.get('/me', authenticate, (req, res) => {
       id: req.user.id,
       username: req.user.username,
       email: req.user.email,
+      first_name: req.user.first_name || '',
       role: req.user.role,
       avatar_color: req.user.avatar_color
     }
@@ -244,13 +259,18 @@ authRouter.get('/my-invite-code', authenticate, (req, res) => {
 
 // PATCH /api/auth/profile - Update own profile
 authRouter.patch('/profile', authenticate, (req, res) => {
-  const { avatar_color, username } = req.body;
+  const { avatar_color, username, first_name } = req.body;
   const updates = [];
   const params = [];
 
   if (avatar_color) {
     updates.push('avatar_color = ?');
     params.push(avatar_color);
+  }
+
+  if (first_name !== undefined) {
+    updates.push('first_name = ?');
+    params.push(String(first_name).trim());
   }
 
   if (username && username.trim().length >= 3) {
@@ -269,6 +289,6 @@ authRouter.patch('/profile', authenticate, (req, res) => {
   params.push(req.user.id);
   db.prepare(`UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(...params);
 
-  const updatedUser = db.prepare('SELECT id, username, email, role, avatar_color FROM users WHERE id = ?').get(req.user.id);
+  const updatedUser = db.prepare('SELECT id, username, email, role, avatar_color, first_name FROM users WHERE id = ?').get(req.user.id);
   res.json({ user: updatedUser });
 });

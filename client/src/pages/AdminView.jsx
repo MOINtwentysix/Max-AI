@@ -28,6 +28,7 @@ export function AdminView() {
   const [overview, setOverview] = useState(null);
   const [users, setUsers] = useState([]);
   const [regMode, setRegMode] = useState('PUBLIC');
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [inviteCodes, setInviteCodes] = useState([]);
 
   // Create invite code form state
@@ -80,6 +81,7 @@ export function AdminView() {
     const res = await fetch('/api/admin/registration', { headers: { Authorization: `Bearer ${token}` } });
     const data = await res.json();
     setRegMode(data.mode);
+    setMaintenanceMode(!!data.maintenanceMode);
     setInviteCodes(data.inviteCodes || []);
   };
 
@@ -219,7 +221,7 @@ export function AdminView() {
   ];
 
   return (
-    <div className="max-w-md mx-auto w-full px-4 pt-2 pb-24 space-y-4">
+    <div className="max-w-2xl mx-auto w-full px-4 pt-4 pb-24 md:pb-8 space-y-5">
       {/* Sub-nav pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
         {sections.map((s) => (
@@ -271,6 +273,37 @@ export function AdminView() {
       {/* REGISTRATION & CUSTOM INVITE CODES */}
       {activeSection === 'registration' && (
         <div className="space-y-4">
+          {/* Maintenance Mode Toggle Card */}
+          <div className="muse-card rounded-[26px] p-5 space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-main">Wartungsmodus (Maintenance Mode)</h3>
+                <p className="text-[11px] text-muted mt-0.5">
+                  Wenn aktiv, können ausschließlich Administratoren die App nutzen.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const nextVal = !maintenanceMode;
+                  await fetch('/api/admin/maintenance/mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ enabled: nextVal }),
+                  });
+                  setMaintenanceMode(nextVal);
+                }}
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
+                  maintenanceMode
+                    ? 'bg-red-500 text-white'
+                    : 'bg-subtle text-muted hover:text-main'
+                }`}
+              >
+                {maintenanceMode ? 'Aktiviert (Nur Admins)' : 'Deaktiviert'}
+              </button>
+            </div>
+          </div>
+
           {/* Mode Switcher */}
           <div className="muse-card rounded-[26px] p-5 space-y-3 text-xs">
             <h3 className="text-sm font-bold text-main">Registrierungsmodus</h3>

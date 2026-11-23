@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Mic, Send, Compass } from 'lucide-react';
+import { Plus, Mic, Send, Compass, Users, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 
-export function ChatView({ onThinkingChange }) {
+export function ChatView({ messages = [], setMessages }) {
   const { user, token } = useAuth();
-  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Live Queue state
+  // queueState: null | { position: number, total: number }
+  const [queueState, setQueueState] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -18,11 +21,7 @@ export function ChatView({ onThinkingChange }) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    onThinkingChange?.(isStreaming);
-  }, [isStreaming, onThinkingChange]);
+  }, [messages, queueState]);
 
   const handleSend = async (e) => {
     e?.preventDefault();
@@ -35,6 +34,7 @@ export function ChatView({ onThinkingChange }) {
     setMessages(newMessages);
     setInput('');
     setIsStreaming(true);
+    setQueueState(null);
 
     const assistantMsgIndex = newMessages.length;
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
@@ -74,8 +74,22 @@ export function ChatView({ onThinkingChange }) {
 
           try {
             const data = JSON.parse(jsonStr);
+
+            // Live Queue updates
+            if (data.type === 'queue') {
+              if (data.position > 0) {
+                setQueueState({ position: data.position, total: data.total });
+              } else {
+                // position 0 means active now!
+                setQueueState(null);
+              }
+              continue;
+            }
+
             if (data.error) throw new Error(data.error);
+
             if (data.chunk) {
+              setQueueState(null); // cleared once generation starts
               accumulatedText += data.chunk;
               setMessages((prev) => {
                 const updated = [...prev];
@@ -94,17 +108,17 @@ export function ChatView({ onThinkingChange }) {
       }
     } catch (err) {
       console.error('Chat error:', err);
-      // Clean, empathetic message in chat without technical error alerts
       setMessages((prev) => {
         const updated = [...prev];
         updated[assistantMsgIndex] = {
           role: 'assistant',
-          content: 'Ich kann mein Sprachmodell gerade nicht erreichen. Bitte stelle sicher, dass Ollama läuft und im Admin-Bereich erreichbar ist.',
+          content: 'Ich konnte gerade keine Antwort generieren. Bitte versuche es gleich noch einmal.',
         };
         return updated;
       });
     } finally {
       setIsStreaming(false);
+      setQueueState(null);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
@@ -116,38 +130,41 @@ export function ChatView({ onThinkingChange }) {
     }
   };
 
+  // Determine user display name: Prefer first_name if configured!
+  const displayName = user?.first_name || user?.username || 'Freund';
+
   return (
-    <div className="flex flex-col h-[calc(100vh-5.5rem)] max-w-md mx-auto w-full px-4 pb-20 justify-between">
+    <div className="flex flex-col h-[calc(100vh-5.5rem)] max-w-2xl mx-auto w-full px-4 pb-20 md:pb-6 justify-between">
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto space-y-4 pt-2 pb-4 no-scrollbar">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col justify-end pb-6 space-y-3">
             {/* Muse Welcome Pill Bubble */}
-            <div className="max-w-[85%] bg-[#eeeff2] dark:bg-[#1c1c1f] text-[#1d1d1f] dark:text-[#f5f5f7] p-4 rounded-[26px] rounded-bl-md text-sm leading-relaxed shadow-sm">
-              <p className="font-medium">
-                Hi {user?.username}! Ich bin Max, dein persönlicher digitaler Begleiter.
+            <div className="max-w-[85%] bg-[#eeeff2] dark:bg-[#1c1c1f] text-[#1d1d1f] dark:text-[#f5f5f7] p-5 rounded-[26px] rounded-bl-md text-sm leading-relaxed shadow-sm">
+              <p className="font-semibold text-base">
+                Hi {displayName}! Ich bin Max.
               </p>
               <p className="text-xs text-muted mt-1.5 leading-relaxed">
-                Ich lerne dich mit jedem Gespräch besser kennen und merke mir wichtige Dinge in meinem lokalen Gedächtnis. Was steht heute an?
+                Dein persönlicher Begleiter. Alles Wichtige über dich lerne ich im Gespräch und behalte es in meinem <b>Max LTM</b> (Long Time Memory).
               </p>
             </div>
 
             {/* Muse Example Rich Card */}
-            <div className="max-w-[92%] muse-card rounded-[26px] p-4 text-xs space-y-2.5">
+            <div className="max-w-[92%] muse-card rounded-[26px] p-5 text-xs space-y-2.5">
               <div className="flex items-center gap-2 text-muted">
-                <Compass className="w-4 h-4 text-accent" />
-                <span className="font-semibold text-main uppercase tracking-wider text-[10px]">
+                <Compass className="w-4 h-4 text-amber-500" />
+                <span className="font-bold text-main uppercase tracking-wider text-[10px]">
                   Vorschlag für deinen Tag
                 </span>
               </div>
               <p className="text-main leading-relaxed">
-                Du kannst mit mir über deine Projekte sprechen, Notizen festhalten oder Ideen brainstormen.
+                Erzähle mir von deinen Gedanken, plane deinen Tag oder frage mich alles Mögliche.
               </p>
-              <div className="flex gap-1.5 pt-1 overflow-x-auto no-scrollbar">
+              <div className="flex gap-2 pt-1 overflow-x-auto no-scrollbar">
                 {[
-                  'Was kannst du dir merken?',
+                  'Was kannst du dir über mich merken?',
                   'Hilf mir bei einer Idee',
-                  'Fasse meine Gedanken zusammen',
+                  'Wie funktioniert mein Max LTM?',
                 ].map((s, idx) => (
                   <button
                     key={idx}
@@ -155,7 +172,7 @@ export function ChatView({ onThinkingChange }) {
                       setInput(s);
                       inputRef.current?.focus();
                     }}
-                    className="px-3 py-1.5 rounded-full bg-subtle hover:bg-black/5 dark:hover:bg-white/10 text-[11px] font-medium text-main whitespace-nowrap transition-colors"
+                    className="px-3.5 py-2 rounded-full bg-subtle hover:bg-black/5 dark:hover:bg-white/10 text-[11px] font-semibold text-main whitespace-nowrap transition-colors"
                   >
                     {s}
                   </button>
@@ -172,10 +189,10 @@ export function ChatView({ onThinkingChange }) {
                 className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] px-4 py-3 text-sm leading-relaxed ${
+                  className={`max-w-[85%] md:max-w-[75%] px-5 py-3.5 text-sm leading-relaxed ${
                     isUser
-                      ? 'bg-[#1d1d1f] text-white dark:bg-blue-600 rounded-[24px] rounded-br-sm shadow-sm'
-                      : 'bg-[#eeeff2] dark:bg-[#1c1c1f] text-[#1d1d1f] dark:text-[#f5f5f7] rounded-[24px] rounded-bl-sm'
+                      ? 'bg-[#1d1d1f] text-white dark:bg-amber-600 rounded-[26px] rounded-br-sm shadow-sm'
+                      : 'bg-[#eeeff2] dark:bg-[#1c1c1f] text-[#1d1d1f] dark:text-[#f5f5f7] rounded-[26px] rounded-bl-sm'
                   }`}
                 >
                   {isUser ? (
@@ -183,9 +200,9 @@ export function ChatView({ onThinkingChange }) {
                   ) : msg.content ? (
                     <MarkdownRenderer content={msg.content} />
                   ) : (
-                    <div className="flex items-center gap-2 py-1 text-muted text-xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
-                      <span>Max denkt nach...</span>
+                    /* Clean Thinking State without rotating mascot */
+                    <div className="text-muted text-xs font-semibold tracking-wide py-0.5">
+                      Max denkt...
                     </div>
                   )}
                 </div>
@@ -193,55 +210,100 @@ export function ChatView({ onThinkingChange }) {
             );
           })
         )}
+
+        {/* Live Queue Ray Card when multiple requests queue up */}
+        {queueState && (
+          <div className="muse-card rounded-[26px] p-5 border border-amber-500/20 shadow-lg space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-amber-500" />
+                <span className="font-bold text-main">Anfrage-Warteschlange</span>
+              </div>
+              <span className="font-bold text-amber-600 dark:text-amber-400">
+                Platz {queueState.position} von {queueState.total}
+              </span>
+            </div>
+
+            <p className="text-[11px] text-muted">
+              Gerade antwortet Max auf eine andere Anfrage. Du bist gleich an der Reihe!
+            </p>
+
+            {/* Segmented Progress Ray / Strahl */}
+            <div className="flex items-center gap-1.5 w-full pt-1">
+              {Array.from({ length: queueState.total }).map((_, i) => {
+                // If segment index is before or equal to progress from total - position
+                const completedSegments = queueState.total - queueState.position;
+                const isDone = i <= completedSegments;
+                const isCurrent = i === completedSegments;
+
+                return (
+                  <div
+                    key={i}
+                    className={`h-2.5 flex-1 rounded-full transition-all duration-500 ${
+                      isCurrent
+                        ? 'bg-amber-500 animate-pulse'
+                        : isDone
+                        ? 'bg-amber-500'
+                        : 'bg-subtle/80 border border-border'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Muse Minimalist Floating Pill Input Box */}
-      <form
-        onSubmit={handleSend}
-        className="muse-pill rounded-full p-2 flex items-center gap-2 transition-all"
-      >
-        <button
-          type="button"
-          onClick={() => {
-            setInput((prev) => (prev ? prev + ' ' : ''));
-            inputRef.current?.focus();
-          }}
-          className="w-9 h-9 rounded-full bg-subtle/80 hover:bg-subtle text-muted hover:text-main flex items-center justify-center transition-colors flex-shrink-0"
-          title="Optionen"
+      {/* Floating Pill Input Bar (Always stays fixed at the bottom above navigation) */}
+      <div className="pt-2 sticky bottom-0 z-20 bg-gradient-to-t from-primary via-primary to-transparent pb-1">
+        <form
+          onSubmit={handleSend}
+          className="muse-pill rounded-full p-2 flex items-center gap-2 shadow-lg transition-all"
         >
-          <Plus className="w-4 h-4" />
-        </button>
-
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Message"
-          disabled={isStreaming}
-          className="flex-1 bg-transparent border-none outline-none text-sm text-main placeholder:text-muted/70 px-1 disabled:opacity-50"
-        />
-
-        {input.trim() ? (
-          <button
-            type="submit"
-            disabled={isStreaming}
-            className="w-9 h-9 rounded-full bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] flex items-center justify-center shadow-sm hover:opacity-90 active:scale-95 transition-all flex-shrink-0"
-          >
-            <Send className="w-4 h-4 ml-0.5" />
-          </button>
-        ) : (
           <button
             type="button"
-            className="w-9 h-9 rounded-full text-muted hover:text-main flex items-center justify-center transition-colors flex-shrink-0"
-            title="Sprachaufnahme"
+            onClick={() => {
+              setInput((prev) => (prev ? prev + ' ' : ''));
+              inputRef.current?.focus();
+            }}
+            className="w-10 h-10 rounded-full bg-subtle/80 hover:bg-subtle text-muted hover:text-main flex items-center justify-center transition-colors flex-shrink-0"
+            title="Optionen"
           >
-            <Mic className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
           </button>
-        )}
-      </form>
+
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Message"
+            disabled={isStreaming}
+            className="flex-1 bg-transparent border-none outline-none text-sm text-main placeholder:text-muted/70 px-2 disabled:opacity-50 font-medium"
+          />
+
+          {input.trim() ? (
+            <button
+              type="submit"
+              disabled={isStreaming}
+              className="w-10 h-10 rounded-full bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] flex items-center justify-center shadow-sm hover:opacity-90 active:scale-95 transition-all flex-shrink-0"
+            >
+              <Send className="w-4 h-4 ml-0.5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="w-10 h-10 rounded-full text-muted hover:text-main flex items-center justify-center transition-colors flex-shrink-0"
+              title="Sprachaufnahme"
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

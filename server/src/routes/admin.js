@@ -136,8 +136,16 @@ adminRouter.get('/registration', (req, res) => {
 
   res.json({
     mode: settings.registration_mode || 'PUBLIC',
+    maintenanceMode: settings.maintenance_mode === 'true',
     inviteCodes,
   });
+});
+
+adminRouter.post('/maintenance/mode', (req, res) => {
+  const { enabled } = req.body;
+  setSetting('maintenance_mode', enabled ? 'true' : 'false');
+  logAudit(req.user.id, 'CHANGE_MAINTENANCE_MODE', { enabled: !!enabled }, req.ip);
+  res.json({ success: true, maintenanceMode: !!enabled });
 });
 
 adminRouter.post('/registration/mode', (req, res) => {

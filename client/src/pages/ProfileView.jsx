@@ -1,55 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Palette,
   Sun,
   Moon,
-  Cpu,
-  ShieldCheck,
-  Check,
-  RefreshCw,
   LogOut,
   User as UserIcon,
   Sparkles,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { MaxMascot } from '../components/MaxMascot';
 
-const COLOR_PRESETS = [
-  { name: 'Max Blue', hex: '#3B82F6' },
-  { name: 'Emerald Wave', hex: '#10B981' },
-  { name: 'Violet Spark', hex: '#8B5CF6' },
-  { name: 'Sunset Amber', hex: '#F59E0B' },
-  { name: 'Rose Petal', hex: '#EC4899' },
-  { name: 'Slate Calm', hex: '#64748B' },
-];
-
 export function ProfileView() {
   const { user, token, theme, toggleTheme, updateUser, logout } = useAuth();
-  const [selectedColor, setSelectedColor] = useState(user?.avatar_color || '#3B82F6');
   const [username, setUsername] = useState(user?.username || '');
+  const [firstName, setFirstName] = useState(user?.first_name || '');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [ollamaStatus, setOllamaStatus] = useState(null);
-  const [checkingOllama, setCheckingOllama] = useState(false);
-
-  useEffect(() => {
-    checkOllama();
-  }, []);
-
-  const checkOllama = async () => {
-    setCheckingOllama(true);
-    try {
-      const res = await fetch('/api/chat/status', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setOllamaStatus(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCheckingOllama(false);
-    }
-  };
 
   const handleSaveProfile = async (e) => {
     e?.preventDefault();
@@ -62,8 +29,8 @@ export function ProfileView() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          avatar_color: selectedColor,
           username: username.trim(),
+          first_name: firstName.trim(),
         }),
       });
 
@@ -80,106 +47,105 @@ export function ProfileView() {
   };
 
   return (
-    <div className="max-w-md mx-auto w-full px-4 pt-2 pb-24 space-y-4">
+    <div className="max-w-2xl mx-auto w-full px-4 pt-4 pb-24 md:pb-8 space-y-5">
       {/* User Header Card */}
-      <div className="muse-card rounded-[28px] p-5 flex items-center gap-4">
-        <div className="p-2.5 rounded-full bg-subtle/80 flex-shrink-0">
-          <MaxMascot size={52} color={selectedColor} />
+      <div className="muse-card rounded-[28px] p-6 flex items-center gap-5">
+        <div className="p-1 rounded-full bg-subtle/80 flex-shrink-0 shadow-sm">
+          <MaxMascot size={64} />
         </div>
-        <div className="flex-1 space-y-0.5">
+        <div className="flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-main">{user?.username}</h2>
-            <span className="px-2 py-0.5 rounded-full bg-subtle text-[10px] font-semibold text-muted">
+            <h2 className="text-lg font-bold text-main">
+              {user?.first_name ? `${user.first_name} (${user.username})` : user?.username}
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full bg-subtle text-[11px] font-bold text-muted uppercase">
               {user?.role}
             </span>
           </div>
-          <p className="text-xs text-muted">{user?.email}</p>
+          <p className="text-xs text-muted font-medium">{user?.email}</p>
         </div>
       </div>
 
-      {/* Mascot Customization */}
-      <div className="muse-card rounded-[28px] p-5 space-y-3 text-xs">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-main">Max Akzentfarbe</h3>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {COLOR_PRESETS.map((p) => (
-            <button
-              key={p.hex}
-              onClick={() => setSelectedColor(p.hex)}
-              className={`p-2.5 rounded-2xl flex items-center gap-2 transition-all ${
-                selectedColor === p.hex ? 'bg-black/10 dark:bg-white/10 ring-2 ring-main' : 'bg-subtle'
-              }`}
-            >
-              <span className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: p.hex }} />
-              <span className="text-[11px] font-medium truncate">{p.name.split(' ')[0]}</span>
-            </button>
-          ))}
+      {/* Profile Form: Name & First Name */}
+      <form onSubmit={handleSaveProfile} className="muse-card rounded-[28px] p-6 space-y-4 text-xs">
+        <h3 className="text-sm font-bold text-main">Persönliche Angaben</h3>
+
+        <div>
+          <label className="block text-[11px] font-bold text-main mb-1.5">
+            Dein Vorname (Wie Max dich ansprechen soll)
+          </label>
+          <div className="relative">
+            <UserIcon className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="z.B. Alex oder Eymen"
+              className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-subtle text-xs text-main outline-none font-medium focus:ring-2 focus:ring-main/20"
+            />
+          </div>
+          <p className="text-[10px] text-muted mt-1">
+            Max verwendet diesen Namen direkt in allen Gesprächen.
+          </p>
         </div>
 
-        <div className="pt-2">
-          <label className="block text-[11px] font-bold text-main mb-1">Benutzername</label>
+        <div>
+          <label className="block text-[11px] font-bold text-main mb-1.5">Benutzername</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-2.5 rounded-2xl bg-subtle text-xs text-main outline-none"
+            className="w-full p-2.5 rounded-2xl bg-subtle text-xs text-main outline-none font-medium"
           />
         </div>
 
-        <div className="flex justify-end pt-1">
+        <div className="flex justify-end pt-2">
           <button
-            onClick={handleSaveProfile}
+            type="submit"
             disabled={saving}
-            className="px-5 py-2 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-sm hover:opacity-90 active:scale-95 transition-all"
+            className="px-6 py-2.5 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-bold shadow-sm hover:opacity-90 active:scale-95 transition-all"
           >
-            {saveSuccess ? 'Gespeichert!' : saving ? 'Speichern...' : 'Speichern'}
+            {saveSuccess ? 'Gespeichert!' : saving ? 'Speichern...' : 'Änderungen speichern'}
           </button>
         </div>
+      </form>
+
+      {/* Max Farbauswahl -> Coming Soon Card */}
+      <div className="muse-card rounded-[28px] p-6 space-y-2 text-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Palette className="w-4 h-4 text-amber-500" />
+            <h3 className="font-bold text-main">Max Farbvarianten</h3>
+          </div>
+          <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 text-[11px] font-bold uppercase tracking-wider">
+            Coming soon
+          </span>
+        </div>
+        <p className="text-xs text-muted leading-relaxed">
+          Individuelle Farbanpassungen für das Max-Maskottchen werden in einem kommenden Update freigeschaltet.
+        </p>
       </div>
 
       {/* Appearance */}
-      <div className="muse-card rounded-[28px] p-5 flex items-center justify-between">
+      <div className="muse-card rounded-[28px] p-6 flex items-center justify-between">
         <div>
           <h3 className="text-xs font-bold text-main">Erscheinungsbild</h3>
           <p className="text-[11px] text-muted">Helles oder dunkles Design</p>
         </div>
         <button
           onClick={toggleTheme}
-          className="px-4 py-2 rounded-full muse-pill text-xs font-semibold text-main flex items-center gap-1.5"
+          className="px-4 py-2 rounded-full muse-pill text-xs font-semibold text-main flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
         >
           {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5 text-amber-500" />}
           <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
         </button>
       </div>
 
-      {/* Ollama Status */}
-      <div className="muse-card rounded-[28px] p-5 space-y-2 text-xs">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-main">KI-Verbindung</h3>
-          <button onClick={checkOllama} className="p-1 text-muted hover:text-main">
-            <RefreshCw className={`w-3.5 h-3.5 ${checkingOllama ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-        <div className="p-3 rounded-2xl bg-subtle space-y-1.5 text-[11px]">
-          <div className="flex items-center justify-between">
-            <span className="text-muted">Status:</span>
-            <span className={`font-bold ${ollamaStatus?.connected ? 'text-emerald-500' : 'text-red-500'}`}>
-              {ollamaStatus?.connected ? 'Verbunden' : 'Nicht erreichbar'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted">URL:</span>
-            <span className="font-mono">{ollamaStatus?.baseUrl}</span>
-          </div>
-        </div>
-      </div>
-
       {/* Logout Button in Profile */}
       <div className="pt-2">
         <button
           onClick={logout}
-          className="w-full py-3 rounded-full muse-pill text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm"
+          className="w-full py-3.5 rounded-full muse-pill text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm"
         >
           <LogOut className="w-4 h-4" />
           <span>Vom Account abmelden</span>

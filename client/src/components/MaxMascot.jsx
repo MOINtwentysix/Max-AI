@@ -1,118 +1,23 @@
-import React, { useState, useEffect } from 'react';
-
 /**
- * Original Max Mascot:
- * - Abstract boomerang silhouette with 2 inquisitive eyes
- * - Dynamic customizable color gradient and subtle shadow
- * - Thinking animation: tilts sideways with an animated thinking indicator loop
+ * MaxAvatar Component
+ * Uses the official uploaded round orange Max mascot with white square eyes
+ * and mischievous smile as the app icon and profile image.
  */
-export function MaxMascot({ size = 44, color = '#3B82F6', isThinking = false, className = '' }) {
-  const [thoughtStage, setThoughtStage] = useState(0);
-
-  useEffect(() => {
-    if (!isThinking) {
-      setThoughtStage(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setThoughtStage((prev) => (prev + 1) % 3);
-    }, 650);
-    return () => clearInterval(interval);
-  }, [isThinking]);
-
-  const cleanHex = (color && color.startsWith('#')) ? color : '#3B82F6';
-
+export function MaxMascot({ size = 44, className = '', isThinking = false }) {
   return (
-    <div className={`relative inline-flex items-center justify-center select-none ${className}`}>
-      {/* Mascot Boomerang Body */}
-      <div
-        className={`transition-all duration-500 ease-out flex items-center justify-center ${
-          isThinking ? 'thinking-mascot' : 'hover:scale-105 active:scale-95'
-        }`}
+    <div
+      className={`relative inline-flex items-center justify-center select-none flex-shrink-0 ${className}`}
+      style={{ width: size, height: size }}
+    >
+      <img
+        src="/max-avatar.png"
+        alt="Max"
+        className="w-full h-full rounded-full object-cover shadow-sm transition-transform duration-200 hover:scale-105"
         style={{
           width: size,
           height: size,
         }}
-      >
-        <svg
-          viewBox="0 0 100 100"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full drop-shadow-md"
-        >
-          <defs>
-            <linearGradient id={`grad-${cleanHex.replace('#', '')}`} x1="15%" y1="15%" x2="85%" y2="85%">
-              <stop offset="0%" stopColor={cleanHex} />
-              <stop offset="100%" stopColor={adjustColor(cleanHex, -28)} />
-            </linearGradient>
-            <filter id={`softGlow-${cleanHex.replace('#', '')}`} x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor={cleanHex} floodOpacity="0.3" />
-            </filter>
-          </defs>
-
-          {/* Boomerang Shape */}
-          <path
-            d="M 22 28 C 36 12, 64 12, 78 28 C 88 38, 90 56, 76 72 C 64 86, 44 86, 32 74 C 24 64, 24 48, 36 40 C 44 34, 56 36, 62 44 C 66 50, 64 58, 56 62 C 50 64, 44 60, 42 54"
-            stroke={`url(#grad-${cleanHex.replace('#', '')})`}
-            strokeWidth="13"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            filter={`url(#softGlow-${cleanHex.replace('#', '')})`}
-          />
-
-          {/* Inquisitive Eyes */}
-          <circle cx="48" cy="45" r="4.5" fill="#0F172A" />
-          <circle cx="62" cy="47" r="4.5" fill="#0F172A" />
-          {/* Eye highlights */}
-          <circle cx="49.5" cy="43.5" r="1.6" fill="#FFFFFF" />
-          <circle cx="63.5" cy="45.5" r="1.6" fill="#FFFFFF" />
-        </svg>
-      </div>
-
-      {/* Thinking Loop Animation to the right of Max */}
-      {isThinking && (
-        <div
-          className="absolute left-[95%] top-1/2 -translate-y-1/2 flex items-center pl-2 pointer-events-none z-20"
-        >
-          <div className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-md px-2.5 py-1 rounded-full border border-black/5 dark:border-white/10 shadow-md flex items-center gap-1.5 transition-all">
-            {thoughtStage === 0 && (
-              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping inline-block" />
-            )}
-            {thoughtStage === 1 && (
-              <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent/60" />
-                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" />
-              </div>
-            )}
-            {thoughtStage === 2 && (
-              <div className="thought-bubble-anim flex items-center gap-1 text-accent">
-                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" />
-                </svg>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      />
     </div>
   );
-}
-
-function adjustColor(col, amt) {
-  let usePound = false;
-  if (col[0] === '#') {
-    col = col.slice(1);
-    usePound = true;
-  }
-  let num = parseInt(col, 16);
-  let r = (num >> 16) + amt;
-  if (r > 255) r = 255;
-  else if (r < 0) r = 0;
-  let b = ((num >> 8) & 0x00ff) + amt;
-  if (b > 255) b = 255;
-  else if (b < 0) b = 0;
-  let g = (num & 0x0000ff) + amt;
-  if (g > 255) g = 255;
-  else if (g < 0) g = 0;
-  return (usePound ? '#' : '') + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
 }

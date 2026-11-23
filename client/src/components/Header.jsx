@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { MaxMascot } from './MaxMascot';
-import { Sun, Moon, Copy, Check, X, Share2, Sparkles } from 'lucide-react';
+import { Plus, Share2, Copy, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export function Header({ isThinking = false }) {
-  const { user, theme, toggleTheme, token } = useAuth();
+export function Header({ onNewChat }) {
+  const { user, token } = useAuth();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -37,28 +37,21 @@ export function Header({ isThinking = false }) {
   return (
     <>
       <header className="sticky top-0 z-30 w-full pt-3 pb-2 px-4 bg-transparent select-none">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          {/* Left: Floating Theme Switcher Button */}
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          {/* Left: New Chat Button (Replacing Light/Dark Mode) */}
           <button
-            onClick={toggleTheme}
-            className="w-11 h-11 rounded-full muse-pill flex items-center justify-center text-muted hover:text-main active:scale-95 transition-all shadow-sm"
-            title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            onClick={onNewChat}
+            className="h-11 px-4 rounded-full muse-pill flex items-center gap-1.5 text-xs font-bold text-main hover:text-accent active:scale-95 transition-all shadow-sm"
+            title="Neuen Chat starten"
           >
-            {theme === 'dark' ? (
-              <Sun className="w-5 h-5 text-amber-400" />
-            ) : (
-              <Moon className="w-5 h-5 text-[#1d1d1f]" />
-            )}
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span className="hidden sm:inline">Neuer Chat</span>
           </button>
 
-          {/* Center: Floating Pill with Boomerang Mascot & Name */}
+          {/* Center: Floating Pill with Orange Max Mascot & Name */}
           <div className="flex flex-col items-center">
-            <div className="px-5 py-2 rounded-full muse-pill flex flex-col items-center justify-center cursor-default hover:scale-[1.02] transition-transform shadow-sm">
-              <MaxMascot
-                size={34}
-                color={user?.avatar_color || '#3B82F6'}
-                isThinking={isThinking}
-              />
+            <div className="px-5 py-1.5 rounded-full muse-pill flex flex-col items-center justify-center cursor-default hover:scale-[1.02] transition-transform shadow-sm">
+              <MaxMascot size={32} />
               <span className="text-[12px] font-bold text-main tracking-tight mt-0.5">
                 Max
               </span>
@@ -82,7 +75,7 @@ export function Header({ isThinking = false }) {
           <div className="muse-card rounded-[32px] max-w-sm w-full p-6 space-y-4 shadow-2xl animate-scale-up">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-2xl bg-accent/10 text-accent">
+                <div className="p-2 rounded-2xl bg-amber-500/10 text-amber-600">
                   <Share2 className="w-4 h-4" />
                 </div>
                 <h3 className="text-base font-bold text-main">Freunde einladen</h3>
