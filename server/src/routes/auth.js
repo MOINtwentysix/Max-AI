@@ -26,6 +26,41 @@ authRouter.get('/mode', (req, res) => {
   });
 });
 
+// POST /api/auth/verify-code - Verify an invite code and show who invited them
+authRouter.post('/verify-code', authLimiter, (req, res) => {
+  const { code } = req.body;
+  if (!code) {
+    return res.status(400).json({ error: 'Bitte gib einen Einladungscode ein.' });
+  }
+
+  const cleanCode = String(code).trim().toUpperCase();
+  const inviteCodeRecord = db.prepare(`
+    SELECT i.*, u.username as inviter_username
+    FROM invite_codes i
+    LEFT JOIN users u ON i.created_by = u.id
+    WHERE UPPER(i.code) = ? AND i.is_active = 1
+  `).get(cleanCode);
+
+  if (!inviteCodeRecord) {
+    return res.status(400).json({ error: 'Ungültiger oder deaktivierter Einladungscode.' });
+  }
+
+  if (inviteCodeRecord.expires_at && new Date(inviteCodeRecord.expires_at) < new Date()) {
+    return res.status(400).json({ error: 'Dieser Einladungscode ist abgelaufen.' });
+  }
+
+  if (inviteCodeRecord.max_uses > 0 && inviteCodeRecord.uses_count >= inviteCodeRecord.max_uses) {
+    return res.status(400).json({ error: 'Dieser Einladungscode wurde bereits maximal oft verwendet.' });
+  }
+
+  res.json({
+    valid: true,
+    code: inviteCodeRecord.code,
+    inviterUsername: inviteCodeRecord.inviter_username || 'Ein Max-Administrator',
+    usesRemaining: inviteCodeRecord.max_uses > 0 ? (inviteCodeRecord.max_uses - inviteCodeRecord.uses_count) : 'Unbegrenzt',
+  });
+});
+
 // POST /api/auth/register
 authRouter.post('/register', authLimiter, async (req, res) => {
   const { username, email, password, inviteCode } = req.body;
@@ -178,7 +213,6 @@ authRouter.get('/me', authenticate, (req, res) => {
 // GET /api/auth/my-invite-code - Get or generate personal invite code for current user
 authRouter.get('/my-invite-code', authenticate, (req, res) => {
   try {
-    // Check if user already created an active invite code
     let code = db.prepare(`
       SELECT * FROM invite_codes 
       WHERE created_by = ? AND is_active = 1
@@ -186,7 +220,6 @@ authRouter.get('/my-invite-code', authenticate, (req, res) => {
       LIMIT 1
     `).get(req.user.id);
 
-    // If none exists, create a personal invite code for the user
     if (!code) {
       const codeStr = `MAX-${req.user.username.toUpperCase().slice(0, 4)}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
       const id = crypto.randomUUID();

@@ -5,18 +5,17 @@ services:
       dockerfile: Dockerfile
     container_name: max-ai-buddy
     restart: unless-stopped
-    ports:
-      - "${PORT:-3000}:3000"
+    # By using host network mode on Linux, Max shares the host network directly:
+    # 1. Port 3000 is directly exposed on 127.0.0.1 and 0.0.0.0
+    # 2. Max can talk directly to Ollama listening on 127.0.0.1:11434 with zero host-gateway or firewall issues!
+    network_mode: "host"
     environment:
       - PORT=3000
       - NODE_ENV=production
       - DATA_DIR=/app/data
       - JWT_SECRET=${JWT_SECRET:-max-secure-production-secret-change-this}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://127.0.0.1:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:latest}
-    extra_hosts:
-      # Allows connecting to Ollama running directly on host
-      - "host.docker.internal:host-gateway"
     volumes:
       # Persistent local SQLite database & backups
       - max_data:/app/data

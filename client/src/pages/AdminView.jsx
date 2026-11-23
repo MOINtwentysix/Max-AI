@@ -13,6 +13,9 @@ import {
   Check,
   Download,
   Terminal,
+  Calendar,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,10 +28,15 @@ export function AdminView() {
   const [users, setUsers] = useState([]);
   const [regMode, setRegMode] = useState('PUBLIC');
   const [inviteCodes, setInviteCodes] = useState([]);
+
+  // Create invite code form state
   const [newCustomCode, setNewCustomCode] = useState('');
+  const [newMaxUses, setNewMaxUses] = useState('5');
+  const [newExpiresDays, setNewExpiresDays] = useState('30');
+  const [codeSuccess, setCodeSuccess] = useState(false);
 
   const [aiSettings, setAiSettings] = useState({
-    baseUrl: 'http://localhost:11434',
+    baseUrl: 'http://127.0.0.1:11434',
     model: 'llama3.2:latest',
     systemPrompt: '',
     temperature: 0.7,
@@ -105,6 +113,53 @@ export function AdminView() {
     if (sec === 'logs') loadLogs();
   };
 
+  const handleCreateInviteCode = async (e) => {
+    e?.preventDefault();
+    try {
+      let expiresAt = null;
+      if (newExpiresDays && parseInt(newExpiresDays, 10) > 0) {
+        const d = new Date();
+        d.setDate(d.getDate() + parseInt(newExpiresDays, 10));
+        expiresAt = d.toISOString();
+      }
+
+      const res = await fetch('/api/admin/registration/invite-codes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          code: newCustomCode.trim() || undefined,
+          max_uses: parseInt(newMaxUses, 10) || 1,
+          expires_at: expiresAt,
+        }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Fehler beim Erstellen');
+      }
+
+      setNewCustomCode('');
+      setCodeSuccess(true);
+      setTimeout(() => setCodeSuccess(false), 2500);
+      loadRegistration();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteCode = async (id) => {
+    if (!confirm('Einladungscode wirklich löschen?')) return;
+    try {
+      await fetch(`/api/admin/registration/invite-codes/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      loadRegistration();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleTestConnection = async () => {
     try {
       setTestingAi(true);
@@ -142,8 +197,8 @@ export function AdminView() {
   const sections = [
     { id: 'overview', label: 'Overview' },
     { id: 'ai', label: 'AI Backend' },
+    { id: 'registration', label: 'Invite Codes' },
     { id: 'users', label: 'Users' },
-    { id: 'registration', label: 'Registration' },
     { id: 'system', label: 'Backups' },
     { id: 'logs', label: 'Logs' },
   ];
@@ -198,13 +253,144 @@ export function AdminView() {
         </div>
       )}
 
+      {/* REGISTRATION & CUSTOM INVITE CODES */}
+      {activeSection === 'registration' && (
+        <div className="space-y-4">
+          {/* Mode Switcher */}
+          <div className="muse-card rounded-[26px] p-5 space-y-3 text-xs">
+            <h3 className="text-sm font-bold text-main">Registrierungsmodus</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  await fetch('/api/admin/registration/mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ mode: 'PUBLIC' }),
+                  });
+                  setRegMode('PUBLIC');
+                }}
+                className={`flex-1 py-2 rounded-full text-xs font-semibold ${regMode === 'PUBLIC' ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]' : 'muse-pill text-muted'}`}
+              >
+                Öffentlich
+              </button>
+              <button
+                onClick={async () => {
+                  await fetch('/api/admin/registration/mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ mode: 'INVITE_ONLY' }),
+                  });
+                  setRegMode('INVITE_ONLY');
+                }}
+                className={`flex-1 py-2 rounded-full text-xs font-semibold ${regMode === 'INVITE_ONLY' ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]' : 'muse-pill text-muted'}`}
+              >
+                Einladungscode
+              </button>
+            </div>
+          </div>
+
+          {/* Create Special / Custom Invite Code */}
+          <form onSubmit={handleCreateInviteCode} className="muse-card rounded-[26px] p-5 space-y-3.5 text-xs">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-accent" />
+              <h3 className="text-sm font-bold text-main">Speziellen Einladungscode erstellen</h3>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-main mb-1">Code Name (z.B. VIP-MAX, TEAM2026)</label>
+              <input
+                type="text"
+                value={newCustomCode}
+                onChange={(e) => setNewCustomCode(e.target.value.toUpperCase())}
+                placeholder="Leer lassen für automatischen Code"
+                className="w-full p-2.5 rounded-2xl bg-subtle text-main font-mono uppercase outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[11px] font-bold text-main mb-1">Wie oft gültig?</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10000"
+                  value={newMaxUses}
+                  onChange={(e) => setNewMaxUses(e.target.value)}
+                  className="w-full p-2.5 rounded-2xl bg-subtle text-main font-semibold outline-none"
+                />
+                <span className="text-[10px] text-muted">z.B. 1 für Einmalcode</span>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-main mb-1">Gültigkeit (Tage)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="365"
+                  value={newExpiresDays}
+                  onChange={(e) => setNewExpiresDays(e.target.value)}
+                  className="w-full p-2.5 rounded-2xl bg-subtle text-main font-semibold outline-none"
+                />
+                <span className="text-[10px] text-muted">0 = unbegrenzt</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-bold shadow-sm hover:opacity-90 active:scale-95 transition-all"
+              >
+                {codeSuccess ? 'Erstellt!' : 'Code erstellen'}
+              </button>
+            </div>
+          </form>
+
+          {/* List of active invite codes */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-muted uppercase tracking-wider px-1">
+              Aktive Einladungscodes ({inviteCodes.length})
+            </h4>
+            {inviteCodes.length === 0 ? (
+              <div className="muse-card rounded-[22px] p-4 text-center text-muted text-xs">
+                Keine Einladungscodes vorhanden.
+              </div>
+            ) : (
+              inviteCodes.map((c) => (
+                <div key={c.id} className="muse-card rounded-[22px] p-4 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-main text-sm">{c.code}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-subtle text-[10px] text-muted">
+                        Ersteller: {c.creator_username || 'Admin'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-muted mt-1 space-x-2">
+                      <span>Nutzung: <b>{c.uses_count}</b> / {c.max_uses > 0 ? c.max_uses : '∞'}</span>
+                      {c.expires_at && (
+                        <span>• Läuft ab: {new Date(c.expires_at).toLocaleDateString('de-DE')}</span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteCode(c.id)}
+                    className="p-1.5 text-muted hover:text-red-500 transition-colors"
+                    title="Löschen"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* AI SETTINGS */}
       {activeSection === 'ai' && (
         <form onSubmit={handleSaveAi} className="muse-card rounded-[26px] p-5 space-y-4 text-xs">
           <div>
             <h3 className="text-sm font-bold text-main tracking-tight">Ollama Anbindung</h3>
             <p className="text-[11px] text-muted mt-0.5">
-              Gib die URL ein, unter der Ollama läuft (z.B. Host-IP oder Docker-Bridge).
+              Standardmäßig über <code>http://127.0.0.1:11434</code> (Host-Netzwerk).
             </p>
           </div>
 
@@ -216,9 +402,6 @@ export function AdminView() {
               onChange={(e) => setAiSettings({ ...aiSettings, baseUrl: e.target.value })}
               className="w-full p-2.5 rounded-2xl bg-subtle text-main font-mono outline-none"
             />
-            <p className="text-[10px] text-muted mt-1">
-              Tipp: Falls Ollama auf demselben Server läuft, teste <code>http://172.17.0.1:11434</code> oder <code>http://host.docker.internal:11434</code>.
-            </p>
           </div>
 
           <div>
@@ -284,42 +467,6 @@ export function AdminView() {
               <span className="text-[10px] text-muted">{u.memory_count} Fakten</span>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* REGISTRATION */}
-      {activeSection === 'registration' && (
-        <div className="muse-card rounded-[26px] p-5 space-y-3 text-xs">
-          <h3 className="text-sm font-bold text-main">Registrierungsmodus</h3>
-          <p className="text-muted text-[11px]">Aktueller Modus: <b>{regMode}</b></p>
-          <div className="flex gap-2">
-            <button
-              onClick={async () => {
-                await fetch('/api/admin/registration/mode', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                  body: JSON.stringify({ mode: 'PUBLIC' }),
-                });
-                setRegMode('PUBLIC');
-              }}
-              className={`flex-1 py-2 rounded-full text-xs font-semibold ${regMode === 'PUBLIC' ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]' : 'muse-pill text-muted'}`}
-            >
-              Öffentlich
-            </button>
-            <button
-              onClick={async () => {
-                await fetch('/api/admin/registration/mode', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                  body: JSON.stringify({ mode: 'INVITE_ONLY' }),
-                });
-                setRegMode('INVITE_ONLY');
-              }}
-              className={`flex-1 py-2 rounded-full text-xs font-semibold ${regMode === 'INVITE_ONLY' ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f]' : 'muse-pill text-muted'}`}
-            >
-              Einladungscode
-            </button>
-          </div>
         </div>
       )}
 
