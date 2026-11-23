@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Mic, Send, AlertCircle, RefreshCw, Compass, MapPin, Sparkles } from 'lucide-react';
+import { Plus, Mic, Send, Compass } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
 
@@ -8,7 +8,6 @@ export function ChatView({ onThinkingChange }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -30,7 +29,6 @@ export function ChatView({ onThinkingChange }) {
     const cleanInput = input.trim();
     if (!cleanInput || isStreaming) return;
 
-    setError(null);
     const userMsg = { role: 'user', content: cleanInput };
     const newMessages = [...messages, userMsg];
 
@@ -53,7 +51,7 @@ export function ChatView({ onThinkingChange }) {
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));
-        throw new Error(errJson.error || `HTTP ${response.status}: Server-Fehler`);
+        throw new Error(errJson.error || 'Server-Fehler');
       }
 
       const reader = response.body.getReader();
@@ -96,12 +94,14 @@ export function ChatView({ onThinkingChange }) {
       }
     } catch (err) {
       console.error('Chat error:', err);
-      setError(err.message || 'Verbindung zu Max unterbrochen.');
+      // Clean, empathetic message in chat without technical error alerts
       setMessages((prev) => {
-        if (prev[assistantMsgIndex]?.content === '') {
-          return prev.slice(0, assistantMsgIndex);
-        }
-        return prev;
+        const updated = [...prev];
+        updated[assistantMsgIndex] = {
+          role: 'assistant',
+          content: 'Ich kann mein Sprachmodell gerade nicht erreichen. Bitte stelle sicher, dass Ollama läuft und im Admin-Bereich erreichbar ist.',
+        };
+        return updated;
       });
     } finally {
       setIsStreaming(false);
@@ -120,22 +120,6 @@ export function ChatView({ onThinkingChange }) {
     <div className="flex flex-col h-[calc(100vh-5.5rem)] max-w-md mx-auto w-full px-4 pb-20 justify-between">
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto space-y-4 pt-2 pb-4 no-scrollbar">
-        {error && (
-          <div className="p-4 rounded-3xl bg-red-50 dark:bg-red-950/40 border border-red-200/60 text-xs text-red-700 dark:text-red-300 flex items-start gap-3 shadow-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-500" />
-            <div className="flex-1">
-              <p className="font-semibold">Ollama Hinweis</p>
-              <p className="mt-0.5 opacity-90 leading-relaxed">{error}</p>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className="p-1 rounded-full hover:bg-black/5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
         {messages.length === 0 ? (
           <div className="h-full flex flex-col justify-end pb-6 space-y-3">
             {/* Muse Welcome Pill Bubble */}
@@ -148,7 +132,7 @@ export function ChatView({ onThinkingChange }) {
               </p>
             </div>
 
-            {/* Muse Example Rich Card (Itinerary Style) */}
+            {/* Muse Example Rich Card */}
             <div className="max-w-[92%] muse-card rounded-[26px] p-4 text-xs space-y-2.5">
               <div className="flex items-center gap-2 text-muted">
                 <Compass className="w-4 h-4 text-accent" />

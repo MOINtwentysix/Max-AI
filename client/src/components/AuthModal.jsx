@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MaxMascot } from '../components/MaxMascot';
-import { ShieldCheck, ArrowRight, Lock, User, Mail, Key } from 'lucide-react';
+import { ArrowRight, Lock, User, Mail, Key } from 'lucide-react';
 
 export function AuthModal() {
   const { login } = useAuth();
@@ -61,95 +61,87 @@ export function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-surface rounded-3xl max-w-sm w-full p-6 md:p-8 border border-border shadow-2xl space-y-5 animate-scale-up">
-        {/* Header with Mascot */}
+    <div className="fixed inset-0 z-50 bg-[#f5f5f7] dark:bg-[#0a0a0c] flex items-center justify-center p-4">
+      <div className="muse-card rounded-[36px] max-w-sm w-full p-8 space-y-6 shadow-2xl animate-scale-up">
+        {/* Mascot & Welcome Header */}
         <div className="text-center space-y-2">
-          <div className="inline-block p-2 rounded-full bg-subtle border border-border mb-1">
-            <MaxMascot size={56} color="#3B82F6" />
+          <div className="inline-flex p-3 rounded-full muse-pill mb-1">
+            <MaxMascot size={64} color="#3B82F6" />
           </div>
-          <h1 className="text-xl font-bold text-main tracking-tight">
-            {isLogin ? 'Willkommen zurück' : 'Lerne Max kennen'}
+          <h1 className="text-2xl font-bold text-main tracking-tight">
+            {isLogin ? 'Willkommen bei Max' : 'Erstelle deinen Begleiter'}
           </h1>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-muted leading-relaxed">
             {isLogin
-              ? 'Melde dich an, um mit Max zu sprechen.'
+              ? 'Melde dich an, um dein Gespräch fortzusetzen.'
               : regModeInfo.isFirstUser
-              ? 'Erster Start! Der erste Account wird als System-Administrator angelegt.'
-              : 'Erstelle deinen persönlichen Max-Account.'}
+              ? 'Erster Start! Der erste Account wird als Administrator angelegt.'
+              : 'Max merkt sich deine Gedanken, Ziele und Vorlieben.'}
           </p>
         </div>
 
         {error && (
-          <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-300 text-xs">
+          <div className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200/50 text-red-600 dark:text-red-300 text-xs text-center font-medium">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-main mb-1">
-              {isLogin ? 'Benutzername oder E-Mail' : 'Benutzername'}
-            </label>
             <div className="relative">
-              <User className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder={isLogin ? 'alex oder alex@beispiel.de' : 'alex'}
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-subtle border border-border text-sm text-main placeholder:text-muted focus:outline-none focus:border-accent"
+                placeholder={isLogin ? 'Benutzername oder E-Mail' : 'Benutzername'}
+                className="w-full pl-11 pr-4 py-3 rounded-full bg-subtle border-none text-xs md:text-sm text-main placeholder:text-muted outline-none focus:ring-2 focus:ring-[#1d1d1f] dark:focus:ring-white transition-all font-medium"
               />
             </div>
           </div>
 
           {!isLogin && (
             <div>
-              <label className="block text-xs font-semibold text-main mb-1">E-Mail</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="alex@beispiel.de"
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-subtle border border-border text-sm text-main placeholder:text-muted focus:outline-none focus:border-accent"
+                  placeholder="E-Mail-Adresse"
+                  className="w-full pl-11 pr-4 py-3 rounded-full bg-subtle border-none text-xs md:text-sm text-main placeholder:text-muted outline-none focus:ring-2 focus:ring-[#1d1d1f] dark:focus:ring-white transition-all font-medium"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-main mb-1">Passwort</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-subtle border border-border text-sm text-main placeholder:text-muted focus:outline-none focus:border-accent"
+                placeholder="Passwort"
+                className="w-full pl-11 pr-4 py-3 rounded-full bg-subtle border-none text-xs md:text-sm text-main placeholder:text-muted outline-none focus:ring-2 focus:ring-[#1d1d1f] dark:focus:ring-white transition-all font-medium"
               />
             </div>
           </div>
 
           {!isLogin && !regModeInfo.isFirstUser && regModeInfo.registrationMode === 'INVITE_ONLY' && (
             <div>
-              <label className="block text-xs font-semibold text-main mb-1">
-                Einladungscode (Erforderlich)
-              </label>
               <div className="relative">
-                <Key className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Key className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
-                  placeholder="MAX-XXXXXX"
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-2xl bg-subtle border border-border text-sm text-main placeholder:text-muted font-mono uppercase focus:outline-none focus:border-accent"
+                  placeholder="Einladungscode"
+                  className="w-full pl-11 pr-4 py-3 rounded-full bg-subtle border-none text-xs md:text-sm text-main placeholder:text-muted uppercase font-mono outline-none focus:ring-2 focus:ring-[#1d1d1f] dark:focus:ring-white transition-all"
                 />
               </div>
             </div>
@@ -158,23 +150,24 @@ export function AuthModal() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-2xl bg-accent text-white font-semibold text-sm shadow-md hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+            className="w-full py-3.5 rounded-full bg-[#1d1d1f] dark:bg-white text-white dark:text-[#1d1d1f] font-bold text-xs shadow-md hover:opacity-90 active:scale-98 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
           >
-            <span>{loading ? 'Bitte warten...' : isLogin ? 'Anmelden' : 'Registrieren'}</span>
+            <span>{loading ? 'Bitte warten...' : isLogin ? 'Anmelden' : 'Account erstellen'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <div className="text-center pt-2 border-t border-border/60">
+        {/* Switch Login / Sign Up */}
+        <div className="text-center pt-2">
           <button
             type="button"
             onClick={() => {
               setIsLogin(!isLogin);
               setError(null);
             }}
-            className="text-xs text-muted hover:text-accent font-medium transition-colors"
+            className="text-xs text-muted hover:text-main font-semibold transition-colors"
           >
-            {isLogin ? 'Noch kein Account? Jetzt registrieren' : 'Bereits registriert? Hier anmelden'}
+            {isLogin ? 'Noch kein Account? Hier registrieren' : 'Bereits registriert? Hier anmelden'}
           </button>
         </div>
       </div>

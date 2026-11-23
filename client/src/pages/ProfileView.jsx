@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Check,
   RefreshCw,
+  LogOut,
   User as UserIcon,
   Sparkles,
 } from 'lucide-react';
@@ -14,17 +15,17 @@ import { useAuth } from '../context/AuthContext';
 import { MaxMascot } from '../components/MaxMascot';
 
 const COLOR_PRESETS = [
-  { name: 'Warm Clay (Muse)', hex: '#E8D5C4' },
-  { name: 'Sky Blue', hex: '#3B82F6' },
-  { name: 'Emerald', hex: '#10B981' },
-  { name: 'Violet', hex: '#8B5CF6' },
-  { name: 'Amber', hex: '#F59E0B' },
-  { name: 'Slate', hex: '#64748B' },
+  { name: 'Max Blue', hex: '#3B82F6' },
+  { name: 'Emerald Wave', hex: '#10B981' },
+  { name: 'Violet Spark', hex: '#8B5CF6' },
+  { name: 'Sunset Amber', hex: '#F59E0B' },
+  { name: 'Rose Petal', hex: '#EC4899' },
+  { name: 'Slate Calm', hex: '#64748B' },
 ];
 
 export function ProfileView() {
-  const { user, token, theme, toggleTheme, updateUser } = useAuth();
-  const [selectedColor, setSelectedColor] = useState(user?.avatar_color || '#E8D5C4');
+  const { user, token, theme, toggleTheme, updateUser, logout } = useAuth();
+  const [selectedColor, setSelectedColor] = useState(user?.avatar_color || '#3B82F6');
   const [username, setUsername] = useState(user?.username || '');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -80,7 +81,7 @@ export function ProfileView() {
 
   return (
     <div className="max-w-md mx-auto w-full px-4 pt-2 pb-24 space-y-4">
-      {/* Muse User Card */}
+      {/* User Header Card */}
       <div className="muse-card rounded-[28px] p-5 flex items-center gap-4">
         <div className="p-2.5 rounded-full bg-subtle/80 flex-shrink-0">
           <MaxMascot size={52} color={selectedColor} />
@@ -99,7 +100,7 @@ export function ProfileView() {
       {/* Mascot Customization */}
       <div className="muse-card rounded-[28px] p-5 space-y-3 text-xs">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-main">Max Begleiter-Farbe</h3>
+          <h3 className="font-bold text-main">Max Akzentfarbe</h3>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {COLOR_PRESETS.map((p) => (
@@ -141,7 +142,7 @@ export function ProfileView() {
       <div className="muse-card rounded-[28px] p-5 flex items-center justify-between">
         <div>
           <h3 className="text-xs font-bold text-main">Erscheinungsbild</h3>
-          <p className="text-[11px] text-muted">Design anpassen</p>
+          <p className="text-[11px] text-muted">Helles oder dunkles Design</p>
         </div>
         <button
           onClick={toggleTheme}
@@ -172,6 +173,17 @@ export function ProfileView() {
             <span className="font-mono">{ollamaStatus?.baseUrl}</span>
           </div>
         </div>
+      </div>
+
+      {/* Logout Button in Profile */}
+      <div className="pt-2">
+        <button
+          onClick={logout}
+          className="w-full py-3 rounded-full muse-pill text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Vom Account abmelden</span>
+        </button>
       </div>
     </div>
   );

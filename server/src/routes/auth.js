@@ -11,8 +11,8 @@ export const authRouter = express.Router();
 
 // Rate limiting for auth endpoints (prevent brute-force)
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // 30 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 30,
   message: { error: 'Zu viele Versuche von dieser IP. Bitte warte etwas.' }
 });
 
@@ -45,7 +45,6 @@ authRouter.post('/register', authLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Das Passwort muss mindestens 6 Zeichen lang sein.' });
   }
 
-  // Check registration mode and existing users count
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
   const isFirstUser = (userCount === 0);
   const regMode = getSetting('registration_mode') || 'PUBLIC';
@@ -74,13 +73,11 @@ authRouter.post('/register', authLimiter, async (req, res) => {
     }
   }
 
-  // Check unique username or email
   const existingUser = db.prepare('SELECT id, username, email FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?').get(cleanUsername.toLowerCase(), cleanEmail);
   if (existingUser) {
     return res.status(400).json({ error: 'Benutzername oder E-Mail ist bereits vergeben.' });
   }
 
-  // Determine role: FIRST USER is permanently ADMIN, subsequent users are USER
   const role = isFirstUser ? 'ADMIN' : 'USER';
   const userId = crypto.randomUUID();
   const salt = await bcrypt.genSalt(10);
@@ -92,7 +89,6 @@ authRouter.post('/register', authLimiter, async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(userId, cleanUsername, cleanEmail, passwordHash, role, '#3B82F6');
 
-    // Update invite code uses if applicable
     if (inviteCodeRecord) {
       db.prepare(`
         UPDATE invite_codes 
@@ -103,7 +99,6 @@ authRouter.post('/register', authLimiter, async (req, res) => {
 
     logAudit(userId, 'USER_REGISTERED', { username: cleanUsername, email: cleanEmail, role }, req.ip);
 
-    // Generate JWT token
     const token = jwt.sign({ userId, username: cleanUsername, role }, JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({
@@ -180,7 +175,41 @@ authRouter.get('/me', authenticate, (req, res) => {
   });
 });
 
-// PATCH /api/auth/profile - Update own profile (e.g. avatar color, username)
+// GET /api/auth/my-invite-code - Get or generate personal invite code for current user
+authRouter.get('/my-invite-code', authenticate, (req, res) => {
+  try {
+    // Check if user already created an active invite code
+    let code = db.prepare(`
+      SELECT * FROM invite_codes 
+      WHERE created_by = ? AND is_active = 1
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `).get(req.user.id);
+
+    // If none exists, create a personal invite code for the user
+    if (!code) {
+      const codeStr = `MAX-${req.user.username.toUpperCase().slice(0, 4)}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+      const id = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO invite_codes (id, code, created_by, max_uses, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(id, codeStr, req.user.id, 5, null);
+
+      code = db.prepare('SELECT * FROM invite_codes WHERE id = ?').get(id);
+    }
+
+    res.json({
+      inviteCode: code.code,
+      maxUses: code.max_uses,
+      usesCount: code.uses_count,
+      expiresAt: code.expires_at,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/auth/profile - Update own profile
 authRouter.patch('/profile', authenticate, (req, res) => {
   const { avatar_color, username } = req.body;
   const updates = [];
@@ -192,7 +221,6 @@ authRouter.patch('/profile', authenticate, (req, res) => {
   }
 
   if (username && username.trim().length >= 3) {
-    // Check uniqueness
     const existing = db.prepare('SELECT id FROM users WHERE LOWER(username) = ? AND id != ?').get(username.trim().toLowerCase(), req.user.id);
     if (existing) {
       return res.status(400).json({ error: 'Benutzername bereits vergeben.' });
