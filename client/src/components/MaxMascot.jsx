@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * MaxMascot:
- * - Abstract boomerang shaped mascot with 2 expressive eyes
- * - Supports custom colors (via avatar_color prop)
- * - Animated thinking state: tilts sideways with an animated thinking GIF/SVG loop
- *   (cycling between 1 dot, 2 dots, and a thought bubble)
+ * - Expressive, organic boomerang companion mascot with 2 interactive eyes
+ * - Dynamic color styling & glow
+ * - Thinking animation: tilts sideways with an animated thinking indicator
  */
 export function MaxMascot({ size = 48, color = '#3B82F6', isThinking = false, className = '' }) {
-  const [thoughtStage, setThoughtStage] = useState(0); // 0: 1 dot, 1: 2 dots, 2: thought bubble
+  const [thoughtStage, setThoughtStage] = useState(0);
 
   useEffect(() => {
     if (!isThinking) {
@@ -17,16 +16,16 @@ export function MaxMascot({ size = 48, color = '#3B82F6', isThinking = false, cl
     }
     const interval = setInterval(() => {
       setThoughtStage((prev) => (prev + 1) % 3);
-    }, 700);
+    }, 650);
     return () => clearInterval(interval);
   }, [isThinking]);
 
   return (
-    <div className={`relative inline-flex items-center justify-center ${className}`}>
-      {/* Mascot Body */}
+    <div className={`relative inline-flex items-center justify-center select-none ${className}`}>
+      {/* Mascot Body with Subtle Floating Effect */}
       <div
         className={`transition-all duration-500 ease-out flex items-center justify-center ${
-          isThinking ? 'thinking-mascot' : ''
+          isThinking ? 'thinking-mascot' : 'hover:scale-105 active:scale-95'
         }`}
         style={{
           width: size,
@@ -37,56 +36,55 @@ export function MaxMascot({ size = 48, color = '#3B82F6', isThinking = false, cl
           viewBox="0 0 100 100"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          style={{ width: '100%', height: '100%' }}
+          className="w-full h-full drop-shadow-md"
         >
           <defs>
-            <linearGradient id={`grad-${color}`} x1="15%" y1="15%" x2="85%" y2="85%">
+            <linearGradient id={`grad-${color.replace('#', '')}`} x1="15%" y1="10%" x2="85%" y2="90%">
               <stop offset="0%" stopColor={color} />
-              <stop offset="100%" stopColor={adjustColor(color, -25)} />
+              <stop offset="100%" stopColor={adjustColor(color, -35)} />
             </linearGradient>
-            <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor={color} floodOpacity="0.25" />
+            <filter id={`glow-${color.replace('#', '')}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor={color} floodOpacity="0.3" />
             </filter>
           </defs>
 
-          {/* Boomerang Shape */}
+          {/* Smooth curved boomerang body */}
           <path
             d="M 22 28 C 36 12, 64 12, 78 28 C 88 38, 90 56, 76 72 C 64 86, 44 86, 32 74 C 24 64, 24 48, 36 40 C 44 34, 56 36, 62 44 C 66 50, 64 58, 56 62 C 50 64, 44 60, 42 54"
-            stroke={`url(#grad-${color})`}
+            stroke={`url(#grad-${color.replace('#', '')})`}
             strokeWidth="13"
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter="url(#softGlow)"
+            filter={`url(#glow-${color.replace('#', '')})`}
           />
 
-          {/* Inquisitive Eyes */}
-          <circle cx="48" cy="45" r="4.5" fill="#0F172A" />
-          <circle cx="62" cy="47" r="4.5" fill="#0F172A" />
-          {/* Eye highlights */}
+          {/* Eye 1 */}
+          <circle cx="48" cy="45" r="4.6" fill="#0F172A" />
           <circle cx="49.5" cy="43.5" r="1.6" fill="#FFFFFF" />
+
+          {/* Eye 2 */}
+          <circle cx="62" cy="47" r="4.6" fill="#0F172A" />
           <circle cx="63.5" cy="45.5" r="1.6" fill="#FFFFFF" />
         </svg>
       </div>
 
-      {/* Thinking Loop Animation Displayed to the right of Max */}
+      {/* Thinking Loop Animation to the right of Max */}
       {isThinking && (
         <div
-          className="absolute left-[92%] top-1/2 -translate-y-1/2 flex items-center pl-1 pointer-events-none z-10"
-          style={{ height: size * 0.7 }}
+          className="absolute left-[95%] top-1/2 -translate-y-1/2 flex items-center pl-2 pointer-events-none z-20"
         >
-          <div className="bg-surface/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-border shadow-md flex items-center justify-center gap-1.5 transition-all">
+          <div className="bg-surface/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-border shadow-lg flex items-center gap-1.5 transition-all">
             {thoughtStage === 0 && (
               <span className="w-2 h-2 rounded-full bg-accent animate-ping inline-block" />
             )}
             {thoughtStage === 1 && (
               <div className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent/70" />
+                <span className="w-1.5 h-1.5 rounded-full bg-accent/60" />
                 <span className="w-2 h-2 rounded-full bg-accent animate-bounce" />
               </div>
             )}
             {thoughtStage === 2 && (
               <div className="thought-bubble-anim flex items-center gap-1 text-accent">
-                {/* SVG Thought Bubble */}
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z" />
                 </svg>
@@ -99,7 +97,6 @@ export function MaxMascot({ size = 48, color = '#3B82F6', isThinking = false, cl
   );
 }
 
-// Utility function to lighten/darken hex colors for realistic gradient
 function adjustColor(col, amt) {
   let usePound = false;
   if (col[0] === '#') {

@@ -16,8 +16,8 @@ export function Navigation({ activeTab, setActiveTab }) {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-surface/90 backdrop-blur-lg border-t border-border transition-colors">
-      <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-around">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface/85 backdrop-blur-xl border-t border-border transition-colors">
+      <div className="max-w-md mx-auto px-4 h-18 flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -25,22 +25,26 @@ export function Navigation({ activeTab, setActiveTab }) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center flex-1 py-1.5 px-3 rounded-2xl transition-all duration-200 relative ${
+              className={`flex flex-col items-center justify-center flex-1 py-1.5 px-3 rounded-2xl transition-all duration-300 relative select-none ${
                 isActive
-                  ? 'text-accent font-semibold'
-                  : 'text-muted hover:text-main'
+                  ? 'text-accent font-semibold scale-105'
+                  : 'text-muted hover:text-main hover:scale-102'
               }`}
             >
               <div
-                className={`p-1 rounded-xl transition-all duration-200 ${
-                  isActive ? 'bg-accent/10 scale-105' : 'hover:bg-subtle'
+                className={`p-1.5 rounded-2xl transition-all duration-300 ${
+                  isActive
+                    ? 'bg-accent/15 text-accent shadow-sm'
+                    : 'hover:bg-subtle/80'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-5 h-5 transition-transform duration-200" />
               </div>
-              <span className="text-[11px] mt-0.5 tracking-tight">{tab.label}</span>
+              <span className="text-[11px] mt-1 tracking-tight font-medium">
+                {tab.label}
+              </span>
               {isActive && (
-                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-accent" />
+                <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-accent transition-all duration-300" />
               )}
             </button>
           );
