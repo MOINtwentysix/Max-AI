@@ -10,7 +10,7 @@ export class OllamaService {
   }
 
   static getSystemPrompt() {
-    return getSetting('system_prompt') || 'Du bist Max, ein persönlicher, intelligenter und treuer digitaler Begleiter.';
+    return getSetting('system_prompt') || 'Du bist Max, ein persönlicher, empathischer und kluger digitaler Begleiter. Antworte auf Deutsch, präzise und hilfsbereit.';
   }
 
   static getTemperature() {
@@ -19,73 +19,93 @@ export class OllamaService {
   }
 
   /**
-   * Check if Ollama is accessible and list models
+   * Candidate URLs to test if standard configured URL fails
+   */
+  static getCandidateUrls() {
+    const configured = this.getBaseUrl();
+    const list = [configured];
+
+    // Common Docker to Host aliases & bridges
+    const alternatives = [
+      'http://172.17.0.1:11434',
+      'http://host.docker.internal:11434',
+      'http://127.0.0.1:11434',
+      'http://localhost:11434',
+    ];
+
+    for (const alt of alternatives) {
+      if (!list.includes(alt)) {
+        list.push(alt);
+      }
+    }
+    return list;
+  }
+
+  /**
+   * Check status across configured URL and common Docker host gateways
    */
   static async checkStatus() {
-    const baseUrl = this.getBaseUrl();
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const candidateUrls = this.getCandidateUrls();
+    let lastError = null;
 
-      const res = await fetch(`${baseUrl}/api/tags`, {
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+    for (const url of candidateUrls) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-      if (!res.ok) {
-        return {
-          connected: false,
-          error: `Ollama antwortete mit Status ${res.status}: ${res.statusText}`,
-          models: [],
-        };
+        const res = await fetch(`${url}/api/tags`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          const models = (data.models || []).map((m) => ({
+            name: m.name,
+            size: m.size,
+            modified_at: m.modified_at,
+          }));
+
+          const currentModel = this.getModel();
+          const modelAvailable = models.some(
+            (m) => m.name === currentModel || m.name.startsWith(currentModel)
+          );
+
+          return {
+            connected: true,
+            baseUrl: url,
+            currentModel,
+            modelAvailable,
+            models,
+          };
+        }
+      } catch (err) {
+        lastError = err;
       }
-
-      const data = await res.json();
-      const models = (data.models || []).map((m) => ({
-        name: m.name,
-        size: m.size,
-        modified_at: m.modified_at,
-        details: m.details,
-      }));
-
-      const currentModel = this.getModel();
-      const modelAvailable = models.some((m) => m.name === currentModel || m.name.startsWith(currentModel));
-
-      return {
-        connected: true,
-        baseUrl,
-        currentModel,
-        modelAvailable,
-        models,
-      };
-    } catch (err) {
-      let errorMsg = 'Ollama ist nicht erreichbar.';
-      if (err.name === 'AbortError') {
-        errorMsg = 'Zeitüberschreitung bei Verbindung zu Ollama (Timeout nach 4s).';
-      } else if (err.code === 'ECONNREFUSED' || err.message.includes('fetch failed')) {
-        errorMsg = `Verbindung zu Ollama unter ${baseUrl} fehlgeschlagen. Läuft Ollama?`;
-      } else {
-        errorMsg = `Ollama-Fehler: ${err.message}`;
-      }
-
-      return {
-        connected: false,
-        baseUrl,
-        currentModel: this.getModel(),
-        modelAvailable: false,
-        error: errorMsg,
-        models: [],
-      };
     }
+
+    const primaryUrl = this.getBaseUrl();
+    let errorMsg = `Ollama ist unter ${primaryUrl} nicht erreichbar.`;
+    if (lastError?.code === 'ECONNREFUSED' || lastError?.message?.includes('fetch failed')) {
+      errorMsg = `Keine Verbindung zu Ollama (${primaryUrl}). Falls Ollama auf dem Host läuft, stelle sicher, dass es mit OLLAMA_HOST=0.0.0.0 gestartet ist.`;
+    }
+
+    return {
+      connected: false,
+      baseUrl: primaryUrl,
+      currentModel: this.getModel(),
+      modelAvailable: false,
+      error: errorMsg,
+      models: [],
+    };
   }
 
   /**
    * Stream a chat completion with Ollama
-   * @param {Array<{role: string, content: string}>} messages
-   * @param {Function} onChunk - callback for each token string
    */
   static async streamChat(messages, onChunk) {
-    const baseUrl = this.getBaseUrl();
+    const status = await this.checkStatus();
+    const baseUrl = status.connected ? status.baseUrl : this.getBaseUrl();
     const model = this.getModel();
     const temperature = this.getTemperature();
 
@@ -117,7 +137,7 @@ export class OllamaService {
 
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // keep partial line
+      buffer = lines.pop();
 
       for (const line of lines) {
         if (!line.trim()) continue;
@@ -129,18 +149,17 @@ export class OllamaService {
           if (parsed.done) {
             return;
           }
-        } catch (e) {
-          // ignore partial JSON parse errors
-        }
+        } catch (e) {}
       }
     }
   }
 
   /**
-   * Generate a non-streaming completion (e.g. for background memory analysis)
+   * Generate a non-streaming completion for memory processing
    */
   static async generate(prompt, formatJson = false) {
-    const baseUrl = this.getBaseUrl();
+    const status = await this.checkStatus();
+    const baseUrl = status.connected ? status.baseUrl : this.getBaseUrl();
     const model = this.getModel();
 
     const body = {
@@ -148,7 +167,7 @@ export class OllamaService {
       prompt,
       stream: false,
       options: {
-        temperature: 0.1, // low temperature for deterministic structured extraction
+        temperature: 0.1,
       },
     };
 
@@ -157,7 +176,7 @@ export class OllamaService {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for memory extraction
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
 
     try {
       const response = await fetch(`${baseUrl}/api/generate`, {

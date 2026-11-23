@@ -1,55 +1,45 @@
 import React from 'react';
 import { MaxMascot } from './MaxMascot';
-import { Sun, Moon, LogOut } from 'lucide-react';
+import { Menu, Sun, Moon, UserPlus, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export function Header({ isThinking = false }) {
+export function Header({ isThinking = false, onToggleMenu }) {
   const { user, theme, toggleTheme, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-surface/80 backdrop-blur-xl border-b border-border transition-colors">
-      <div className="max-w-2xl mx-auto px-4 h-20 flex items-center justify-between">
-        {/* Left: Theme Switcher */}
-        <div className="flex items-center">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-2xl hover:bg-subtle text-muted hover:text-main border border-transparent hover:border-border transition-all duration-200 active:scale-95"
-            title={theme === 'dark' ? 'Zu Light Mode wechseln' : 'Zu Dark Mode wechseln'}
-            aria-label="Theme umschalten"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-5 h-5 text-amber-400" />
-            ) : (
-              <Moon className="w-5 h-5 text-slate-600" />
-            )}
-          </button>
-        </div>
+    <header className="sticky top-0 z-30 w-full pt-3 pb-2 px-4 bg-transparent select-none">
+      <div className="max-w-md mx-auto flex items-center justify-between">
+        {/* Left: Floating Circular Menu Button (like Muse reference) */}
+        <button
+          onClick={toggleTheme}
+          className="w-11 h-11 rounded-full muse-pill flex items-center justify-center text-muted hover:text-main active:scale-95 transition-all"
+          title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-5 h-5 text-amber-400" />
+          ) : (
+            <Menu className="w-5 h-5 text-[#1d1d1f]" />
+          )}
+        </button>
 
-        {/* Center: Max Mascot & Name */}
-        <div className="flex flex-col items-center justify-center cursor-default">
-          <div className="p-1.5 rounded-full bg-subtle/60 border border-border/60 transition-transform duration-300 hover:scale-105 shadow-sm">
-            <MaxMascot
-              size={46}
-              color={user?.avatar_color || '#3B82F6'}
-              isThinking={isThinking}
-            />
+        {/* Center: Muse-Style Floating Pill with Mascot & Name */}
+        <div className="flex flex-col items-center">
+          <div className="px-4 py-1.5 rounded-full muse-pill flex flex-col items-center justify-center -space-y-0.5 cursor-default hover:scale-[1.02] transition-transform">
+            <MaxMascot size={32} isThinking={isThinking} />
+            <span className="text-[12px] font-semibold text-main tracking-tight pt-0.5">
+              Max
+            </span>
           </div>
-          <span className="text-xs font-bold tracking-wider text-main mt-1 uppercase">
-            Max
-          </span>
         </div>
 
-        {/* Right: Logout */}
-        <div className="flex items-center">
-          <button
-            onClick={logout}
-            className="p-2.5 rounded-2xl hover:bg-red-50 dark:hover:bg-red-950/40 text-muted hover:text-red-500 border border-transparent hover:border-red-200 dark:hover:border-red-900 transition-all duration-200 active:scale-95"
-            title="Abmelden"
-            aria-label="Abmelden"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
+        {/* Right: Floating Pill Action Button ("Invite" / Status) */}
+        <button
+          onClick={logout}
+          className="h-11 px-4 rounded-full muse-pill flex items-center justify-center gap-1.5 text-[13px] font-semibold text-main hover:text-red-500 active:scale-95 transition-all"
+          title="Abmelden"
+        >
+          <span>Exit</span>
+        </button>
       </div>
     </header>
   );

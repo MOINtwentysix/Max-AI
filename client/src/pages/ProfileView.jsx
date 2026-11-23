@@ -14,17 +14,17 @@ import { useAuth } from '../context/AuthContext';
 import { MaxMascot } from '../components/MaxMascot';
 
 const COLOR_PRESETS = [
-  { name: 'Max Classic Blue', hex: '#3B82F6' },
-  { name: 'Emerald Wave', hex: '#10B981' },
-  { name: 'Violet Spark', hex: '#8B5CF6' },
-  { name: 'Sunset Amber', hex: '#F59E0B' },
-  { name: 'Rose Petal', hex: '#EC4899' },
-  { name: 'Slate Calm', hex: '#64748B' },
+  { name: 'Warm Clay (Muse)', hex: '#E8D5C4' },
+  { name: 'Sky Blue', hex: '#3B82F6' },
+  { name: 'Emerald', hex: '#10B981' },
+  { name: 'Violet', hex: '#8B5CF6' },
+  { name: 'Amber', hex: '#F59E0B' },
+  { name: 'Slate', hex: '#64748B' },
 ];
 
 export function ProfileView() {
   const { user, token, theme, toggleTheme, updateUser } = useAuth();
-  const [selectedColor, setSelectedColor] = useState(user?.avatar_color || '#3B82F6');
+  const [selectedColor, setSelectedColor] = useState(user?.avatar_color || '#E8D5C4');
   const [username, setUsername] = useState(user?.username || '');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -66,15 +66,11 @@ export function ProfileView() {
         }),
       });
 
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error || 'Fehler beim Speichern');
-      }
-
+      if (!res.ok) throw new Error('Fehler beim Speichern');
       const data = await res.json();
       updateUser(data.user);
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2500);
+      setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -83,211 +79,98 @@ export function ProfileView() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto w-full px-4 pt-6 pb-28 space-y-6">
-      {/* User Header Profile Card */}
-      <div className="bg-surface rounded-3xl p-6 md:p-8 border border-border shadow-soft flex flex-col sm:flex-row items-center sm:items-start gap-6 transition-all">
-        <div className="p-4 rounded-full bg-subtle/70 border border-border flex-shrink-0 shadow-inner">
-          <MaxMascot size={76} color={selectedColor} />
+    <div className="max-w-md mx-auto w-full px-4 pt-2 pb-24 space-y-4">
+      {/* Muse User Card */}
+      <div className="muse-card rounded-[28px] p-5 flex items-center gap-4">
+        <div className="p-2.5 rounded-full bg-subtle/80 flex-shrink-0">
+          <MaxMascot size={52} color={selectedColor} />
         </div>
-        <div className="flex-1 text-center sm:text-left space-y-1.5">
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-            <h2 className="text-2xl font-bold text-main tracking-tight">{user?.username}</h2>
-            <span
-              className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                user?.role === 'ADMIN'
-                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
-                  : 'bg-subtle text-muted border border-border'
-              }`}
-            >
+        <div className="flex-1 space-y-0.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-main">{user?.username}</h2>
+            <span className="px-2 py-0.5 rounded-full bg-subtle text-[10px] font-semibold text-muted">
               {user?.role}
             </span>
           </div>
-          <p className="text-xs text-muted font-medium">{user?.email}</p>
-          <div className="pt-2 flex items-center justify-center sm:justify-start gap-2 text-xs text-muted">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
-            <span>Persönliche Max-Instanz • Vollständig self-hosted</span>
-          </div>
+          <p className="text-xs text-muted">{user?.email}</p>
         </div>
       </div>
 
-      {/* Customize Max Mascot */}
-      <div className="bg-surface rounded-3xl p-6 md:p-8 border border-border shadow-soft space-y-5 transition-all">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-accent/10 text-accent">
-            <Palette className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-main">Max Personalisierung</h3>
-            <p className="text-xs text-muted mt-0.5">
-              Wähle deine bevorzugte Akzentfarbe für das Max-Maskottchen.
-            </p>
-          </div>
+      {/* Mascot Customization */}
+      <div className="muse-card rounded-[28px] p-5 space-y-3 text-xs">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-main">Max Begleiter-Farbe</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {COLOR_PRESETS.map((p) => (
+            <button
+              key={p.hex}
+              onClick={() => setSelectedColor(p.hex)}
+              className={`p-2.5 rounded-2xl flex items-center gap-2 transition-all ${
+                selectedColor === p.hex ? 'bg-black/10 dark:bg-white/10 ring-2 ring-main' : 'bg-subtle'
+              }`}
+            >
+              <span className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: p.hex }} />
+              <span className="text-[11px] font-medium truncate">{p.name.split(' ')[0]}</span>
+            </button>
+          ))}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-          {COLOR_PRESETS.map((preset) => {
-            const isSelected = selectedColor === preset.hex;
-            return (
-              <button
-                key={preset.hex}
-                type="button"
-                onClick={() => setSelectedColor(preset.hex)}
-                className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all duration-200 ${
-                  isSelected
-                    ? 'border-accent bg-accent/10 ring-2 ring-accent/30 shadow-sm scale-[1.02]'
-                    : 'border-border bg-subtle/50 hover:bg-subtle hover:scale-[1.01]'
-                }`}
-              >
-                <span
-                  className="w-6 h-6 rounded-full shadow-md flex items-center justify-center text-white flex-shrink-0 transition-transform"
-                  style={{ backgroundColor: preset.hex }}
-                >
-                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                </span>
-                <span className="text-xs font-semibold text-main truncate">{preset.name}</span>
-              </button>
-            );
-          })}
+        <div className="pt-2">
+          <label className="block text-[11px] font-bold text-main mb-1">Benutzername</label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full p-2.5 rounded-2xl bg-subtle text-xs text-main outline-none"
+          />
         </div>
 
-        <div className="pt-3 border-t border-border/60">
-          <label className="block text-xs font-bold text-main mb-2">Benutzername ändern</label>
-          <div className="relative">
-            <UserIcon className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-2xl bg-subtle border border-border text-sm text-main font-medium focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end pt-1">
           <button
             onClick={handleSaveProfile}
             disabled={saving}
-            className="px-6 py-3 rounded-2xl bg-accent text-white font-bold text-xs shadow-md hover:opacity-90 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+            className="px-5 py-2 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-xs font-semibold shadow-sm hover:opacity-90 active:scale-95 transition-all"
           >
-            {saveSuccess ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-200 stroke-[3]" />
-                <span>Gespeichert!</span>
-              </>
-            ) : saving ? (
-              'Speichern...'
-            ) : (
-              'Änderungen speichern'
-            )}
+            {saveSuccess ? 'Gespeichert!' : saving ? 'Speichern...' : 'Speichern'}
           </button>
         </div>
       </div>
 
-      {/* Appearance & Theme */}
-      <div className="bg-surface rounded-3xl p-6 md:p-8 border border-border shadow-soft flex items-center justify-between gap-4 transition-all">
+      {/* Appearance */}
+      <div className="muse-card rounded-[28px] p-5 flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-main">Erscheinungsbild</h3>
-          <p className="text-xs text-muted mt-0.5">
-            Wähle zwischen hellem und dunklem Design.
-          </p>
+          <h3 className="text-xs font-bold text-main">Erscheinungsbild</h3>
+          <p className="text-[11px] text-muted">Design anpassen</p>
         </div>
         <button
           onClick={toggleTheme}
-          className="px-5 py-2.5 rounded-2xl bg-subtle hover:bg-border/60 border border-border text-xs font-bold text-main flex items-center gap-2.5 transition-all duration-200 active:scale-95 shadow-sm"
+          className="px-4 py-2 rounded-full muse-pill text-xs font-semibold text-main flex items-center gap-1.5"
         >
-          {theme === 'dark' ? (
-            <>
-              <Moon className="w-4 h-4 text-blue-400" />
-              <span>Dark Mode</span>
-            </>
-          ) : (
-            <>
-              <Sun className="w-4 h-4 text-amber-500" />
-              <span>Light Mode</span>
-            </>
-          )}
+          {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5 text-amber-500" />}
+          <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
         </button>
       </div>
 
-      {/* AI Backend & Ollama Status */}
-      <div className="bg-surface rounded-3xl p-6 md:p-8 border border-border shadow-soft space-y-4 transition-all">
+      {/* Ollama Status */}
+      <div className="muse-card rounded-[28px] p-5 space-y-2 text-xs">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-accent/10 text-accent">
-              <Cpu className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-main">KI-Backend (Ollama)</h3>
-              <p className="text-xs text-muted mt-0.5">Aktuelle Verbindungsinformationen</p>
-            </div>
-          </div>
-          <button
-            onClick={checkOllama}
-            disabled={checkingOllama}
-            className="p-2.5 rounded-2xl hover:bg-subtle text-muted hover:text-main border border-transparent hover:border-border transition-all active:scale-95"
-            title="Verbindung neu prüfen"
-          >
-            <RefreshCw className={`w-4 h-4 ${checkingOllama ? 'animate-spin text-accent' : ''}`} />
+          <h3 className="font-bold text-main">KI-Verbindung</h3>
+          <button onClick={checkOllama} className="p-1 text-muted hover:text-main">
+            <RefreshCw className={`w-3.5 h-3.5 ${checkingOllama ? 'animate-spin' : ''}`} />
           </button>
         </div>
-
-        <div className="p-5 rounded-2xl bg-subtle/80 border border-border space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted font-medium">Verbindungsstatus:</span>
-            <span
-              className={`font-bold flex items-center gap-2 ${
-                ollamaStatus?.connected ? 'text-emerald-500' : 'text-red-500'
-              }`}
-            >
-              <span
-                className={`w-2.5 h-2.5 rounded-full ${
-                  ollamaStatus?.connected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
-                }`}
-              />
+        <div className="p-3 rounded-2xl bg-subtle space-y-1.5 text-[11px]">
+          <div className="flex items-center justify-between">
+            <span className="text-muted">Status:</span>
+            <span className={`font-bold ${ollamaStatus?.connected ? 'text-emerald-500' : 'text-red-500'}`}>
               {ollamaStatus?.connected ? 'Verbunden' : 'Nicht erreichbar'}
             </span>
           </div>
-
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted font-medium">Aktuelles Modell:</span>
-            <span className="font-mono font-bold text-main">
-              {ollamaStatus?.currentModel || 'llama3.2:latest'}
-            </span>
+          <div className="flex items-center justify-between">
+            <span className="text-muted">URL:</span>
+            <span className="font-mono">{ollamaStatus?.baseUrl}</span>
           </div>
-
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted font-medium">Ollama URL:</span>
-            <span className="font-mono text-muted text-[11px] truncate max-w-[240px]">
-              {ollamaStatus?.baseUrl || 'http://host.docker.internal:11434'}
-            </span>
-          </div>
-
-          {!ollamaStatus?.connected && ollamaStatus?.error && (
-            <p className="text-xs text-red-500 pt-2 border-t border-border/60 leading-relaxed">
-              {ollamaStatus.error}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {/* Privacy & Self-Hosting Information */}
-      <div className="bg-surface rounded-3xl p-6 md:p-8 border border-border shadow-soft space-y-3 transition-all">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-main">Datenschutz & Lokale Speicherung</h3>
-            <p className="text-xs text-muted mt-0.5">Deine Daten bleiben bei dir</p>
-          </div>
-        </div>
-        <p className="text-xs text-muted leading-relaxed">
-          Max speichert alle Daten ausschließlich lokal in einer verschlüsselten SQLite-Datenbank auf deiner eigenen Hardware.
-          Es gibt keine Cloud-Synchronisation, keine externe Telemetrie und keine Drittanbieter-KI-APIs.
-        </p>
-        <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 text-xs text-emerald-800 dark:text-emerald-300 font-medium space-y-1">
-          <p>✓ Chat-Nachrichten werden nach der Sitzung nicht persistent auf der Festplatte gespeichert.</p>
-          <p>✓ 100% Offline-fähig bei lokal laufendem Ollama.</p>
         </div>
       </div>
     </div>

@@ -15,10 +15,10 @@ services:
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:latest}
     extra_hosts:
-      # Allows the container to communicate with Ollama running on the host machine
+      # Allows connecting to Ollama running directly on host
       - "host.docker.internal:host-gateway"
     volumes:
-      # Persistent local storage for SQLite database and backups
+      # Persistent local SQLite database & backups
       - max_data:/app/data
 
 volumes:

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Brain, User, Shield } from 'lucide-react';
+import { MessageSquare, Brain, User, Shield, CheckSquare, Grid } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function Navigation({ activeTab, setActiveTab }) {
@@ -16,39 +16,28 @@ export function Navigation({ activeTab, setActiveTab }) {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface/85 backdrop-blur-xl border-t border-border transition-colors">
-      <div className="max-w-md mx-auto px-4 h-18 flex items-center justify-around">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center flex-1 py-1.5 px-3 rounded-2xl transition-all duration-300 relative select-none ${
-                isActive
-                  ? 'text-accent font-semibold scale-105'
-                  : 'text-muted hover:text-main hover:scale-102'
-              }`}
-            >
-              <div
-                className={`p-1.5 rounded-2xl transition-all duration-300 ${
+    <nav className="fixed bottom-5 left-0 right-0 z-30 pointer-events-none select-none">
+      <div className="max-w-xs mx-auto px-2 pointer-events-auto">
+        <div className="muse-pill rounded-full p-1.5 flex items-center justify-around gap-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
                   isActive
-                    ? 'bg-accent/15 text-accent shadow-sm'
-                    : 'hover:bg-subtle/80'
+                    ? 'bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] shadow-sm'
+                    : 'text-muted hover:text-main hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
+                title={tab.label}
               >
-                <Icon className="w-5 h-5 transition-transform duration-200" />
-              </div>
-              <span className="text-[11px] mt-1 tracking-tight font-medium">
-                {tab.label}
-              </span>
-              {isActive && (
-                <span className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-accent transition-all duration-300" />
-              )}
-            </button>
-          );
-        })}
+                <Icon className="w-5 h-5 stroke-[1.8]" />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
