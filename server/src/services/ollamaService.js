@@ -2,7 +2,7 @@ import { getSetting } from '../db.js';
 
 export class OllamaService {
   static getBaseUrl() {
-    return getSetting('ollama_base_url') || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+    return getSetting('ollama_base_url') || process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
   }
 
   static getModel() {
@@ -21,16 +21,15 @@ export class OllamaService {
   /**
    * Candidate URLs to test if standard configured URL fails
    */
-  static getCandidateUrls() {
-    const configured = this.getBaseUrl();
+  static getCandidateUrls(customUrl) {
+    const configured = customUrl || this.getBaseUrl();
     const list = [configured];
 
-    // Common Docker to Host aliases & bridges
     const alternatives = [
-      'http://172.17.0.1:11434',
-      'http://host.docker.internal:11434',
       'http://127.0.0.1:11434',
       'http://localhost:11434',
+      'http://172.17.0.1:11434',
+      'http://host.docker.internal:11434',
     ];
 
     for (const alt of alternatives) {
@@ -42,16 +41,17 @@ export class OllamaService {
   }
 
   /**
-   * Check status across configured URL and common Docker host gateways
+   * Check status and fetch models from Ollama
+   * @param {string} [specificUrl] - optional URL to test specifically
    */
-  static async checkStatus() {
-    const candidateUrls = this.getCandidateUrls();
+  static async checkStatus(specificUrl) {
+    const candidateUrls = this.getCandidateUrls(specificUrl);
     let lastError = null;
 
     for (const url of candidateUrls) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
 
         const res = await fetch(`${url}/api/tags`, {
           signal: controller.signal,
@@ -84,10 +84,10 @@ export class OllamaService {
       }
     }
 
-    const primaryUrl = this.getBaseUrl();
+    const primaryUrl = specificUrl || this.getBaseUrl();
     let errorMsg = `Ollama ist unter ${primaryUrl} nicht erreichbar.`;
     if (lastError?.code === 'ECONNREFUSED' || lastError?.message?.includes('fetch failed')) {
-      errorMsg = `Keine Verbindung zu Ollama (${primaryUrl}). Falls Ollama auf dem Host läuft, stelle sicher, dass es mit OLLAMA_HOST=0.0.0.0 gestartet ist.`;
+      errorMsg = `Keine Verbindung zu Ollama (${primaryUrl}). Bitte stelle sicher, dass der Ollama-Dienst läuft.`;
     }
 
     return {

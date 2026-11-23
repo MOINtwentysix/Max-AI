@@ -16,6 +16,7 @@ import {
   Calendar,
   Layers,
   Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -41,9 +42,11 @@ export function AdminView() {
     systemPrompt: '',
     temperature: 0.7,
   });
+  const [availableModels, setAvailableModels] = useState([]);
   const [aiSaveSuccess, setAiSaveSuccess] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [testingAi, setTestingAi] = useState(false);
+  const [customModelMode, setCustomModelMode] = useState(false);
 
   const [backups, setBackups] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -89,6 +92,7 @@ export function AdminView() {
       systemPrompt: data.systemPrompt,
       temperature: data.temperature,
     });
+    setAvailableModels(data.availableModels || []);
   };
 
   const loadBackups = async () => {
@@ -166,10 +170,18 @@ export function AdminView() {
       setTestResult(null);
       const res = await fetch('/api/admin/ai/test', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ baseUrl: aiSettings.baseUrl }),
       });
       const data = await res.json();
       setTestResult(data);
+      if (data.availableModels && data.availableModels.length > 0) {
+        setAvailableModels(data.availableModels);
+        // If current model is not set or not in list, default to first available model
+        if (!aiSettings.model && data.availableModels[0]) {
+          setAiSettings((prev) => ({ ...prev, model: data.availableModels[0].name }));
+        }
+      }
     } catch (err) {
       setTestResult({ connected: false, error: err.message });
     } finally {
@@ -188,6 +200,9 @@ export function AdminView() {
       const data = await res.json();
       setAiSaveSuccess(true);
       setTestResult(data.status);
+      if (data.availableModels) {
+        setAvailableModels(data.availableModels);
+      }
       setTimeout(() => setAiSaveSuccess(false), 2500);
     } catch (err) {
       alert(err.message);
@@ -384,18 +399,29 @@ export function AdminView() {
         </div>
       )}
 
-      {/* AI SETTINGS */}
+      {/* AI SETTINGS & MODEL DROPDOWN */}
       {activeSection === 'ai' && (
         <form onSubmit={handleSaveAi} className="muse-card rounded-[26px] p-5 space-y-4 text-xs">
           <div>
-            <h3 className="text-sm font-bold text-main tracking-tight">Ollama Anbindung</h3>
+            <h3 className="text-sm font-bold text-main tracking-tight">Ollama KI-Konfiguration</h3>
             <p className="text-[11px] text-muted mt-0.5">
-              Standardmäßig über <code>http://127.0.0.1:11434</code> (Host-Netzwerk).
+              Wähle dein bevorzugtes KI-Modell bequem aus dem Dropdown-Menü.
             </p>
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-main mb-1">Ollama URL</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-bold text-main">Ollama URL</label>
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={testingAi}
+                className="text-[10px] font-semibold text-accent hover:underline flex items-center gap-1"
+              >
+                <RefreshCw className={`w-3 h-3 ${testingAi ? 'animate-spin' : ''}`} />
+                <span>Modelle neu laden</span>
+              </button>
+            </div>
             <input
               type="text"
               value={aiSettings.baseUrl}
@@ -404,23 +430,58 @@ export function AdminView() {
             />
           </div>
 
+          {/* Model Selection via Top-Down Dropdown or Manual */}
           <div>
-            <label className="block text-[11px] font-bold text-main mb-1">Modell</label>
-            <input
-              type="text"
-              value={aiSettings.model}
-              onChange={(e) => setAiSettings({ ...aiSettings, model: e.target.value })}
-              className="w-full p-2.5 rounded-2xl bg-subtle text-main font-mono outline-none"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-bold text-main">KI-Modell auswählen</label>
+              <button
+                type="button"
+                onClick={() => setCustomModelMode(!customModelMode)}
+                className="text-[10px] text-muted hover:text-main underline"
+              >
+                {customModelMode ? 'Dropdown anzeigen' : 'Manuell eingeben'}
+              </button>
+            </div>
+
+            {!customModelMode && availableModels.length > 0 ? (
+              <div className="relative">
+                <select
+                  value={aiSettings.model}
+                  onChange={(e) => setAiSettings({ ...aiSettings, model: e.target.value })}
+                  className="w-full p-3 rounded-2xl bg-subtle text-main font-semibold outline-none appearance-none pr-10 cursor-pointer text-xs"
+                >
+                  {availableModels.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      {m.name} {m.size ? `(${(m.size / 1024 / 1024 / 1024).toFixed(1)} GB)` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-muted absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={aiSettings.model}
+                onChange={(e) => setAiSettings({ ...aiSettings, model: e.target.value })}
+                placeholder="z.B. llama3.2:latest"
+                className="w-full p-2.5 rounded-2xl bg-subtle text-main font-mono outline-none"
+              />
+            )}
+
+            {availableModels.length === 0 && !customModelMode && (
+              <p className="text-[10px] text-muted mt-1">
+                Klicke auf „Verbindung testen / Modelle neu laden“, um alle installierten Ollama-Modelle abzurufen.
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-main mb-1">System-Prompt</label>
+            <label className="block text-[11px] font-bold text-main mb-1">System-Prompt für Max</label>
             <textarea
               rows={3}
               value={aiSettings.systemPrompt}
               onChange={(e) => setAiSettings({ ...aiSettings, systemPrompt: e.target.value })}
-              className="w-full p-2.5 rounded-2xl bg-subtle text-main outline-none resize-none"
+              className="w-full p-2.5 rounded-2xl bg-subtle text-main outline-none resize-none leading-relaxed"
             />
           </div>
 
@@ -429,23 +490,25 @@ export function AdminView() {
               type="button"
               onClick={handleTestConnection}
               disabled={testingAi}
-              className="px-4 py-2 rounded-full muse-pill text-[11px] font-semibold text-main hover:scale-102 active:scale-95"
+              className="px-4 py-2 rounded-full muse-pill text-[11px] font-semibold text-main hover:scale-102 active:scale-95 shadow-sm"
             >
               {testingAi ? 'Prüfe...' : 'Verbindung testen'}
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-[11px] font-semibold shadow-sm hover:opacity-90"
+              className="px-5 py-2 rounded-full bg-[#1d1d1f] text-white dark:bg-white dark:text-[#1d1d1f] text-[11px] font-semibold shadow-sm hover:opacity-90 active:scale-95 transition-all"
             >
-              {aiSaveSuccess ? 'Gespeichert!' : 'Speichern'}
+              {aiSaveSuccess ? 'Gespeichert!' : 'Einstellungen speichern'}
             </button>
           </div>
 
           {testResult && (
             <div className={`p-3 rounded-2xl text-[11px] leading-relaxed ${testResult.connected ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'}`}>
-              <p className="font-bold">{testResult.connected ? '✓ Verbindung erfolgreich!' : '✗ Verbindung fehlgeschlagen'}</p>
+              <p className="font-bold">{testResult.connected ? '✓ Ollama erreichbar!' : '✗ Verbindung fehlgeschlagen'}</p>
               {testResult.connected ? (
-                <p className="mt-0.5">Erreichbar unter: {testResult.baseUrl} ({testResult.models?.length || 0} Modelle geladen)</p>
+                <p className="mt-0.5">
+                  Gefundene Modelle: {testResult.models?.length || 0} ({testResult.models?.map((m) => m.name).join(', ') || 'Keine geladen'})
+                </p>
               ) : (
                 <p className="mt-0.5">{testResult.error}</p>
               )}

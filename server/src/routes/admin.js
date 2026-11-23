@@ -72,14 +72,12 @@ adminRouter.get('/users', (req, res) => {
   res.json({ users: formatted });
 });
 
-// PATCH /api/admin/users/:id/role
 adminRouter.patch('/users/:id/role', (req, res) => {
   const { role } = req.body;
   if (!['ADMIN', 'USER'].includes(role)) {
     return res.status(400).json({ error: 'Ungültige Rolle.' });
   }
 
-  // Prevent admin from removing their own admin status if they are the only admin
   if (req.user.id === req.params.id && role !== 'ADMIN') {
     const adminCount = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'ADMIN'").get().count;
     if (adminCount <= 1) {
@@ -93,7 +91,6 @@ adminRouter.patch('/users/:id/role', (req, res) => {
   res.json({ success: true });
 });
 
-// PATCH /api/admin/users/:id/lock
 adminRouter.patch('/users/:id/lock', (req, res) => {
   const { is_locked } = req.body;
   if (req.user.id === req.params.id) {
@@ -106,13 +103,11 @@ adminRouter.patch('/users/:id/lock', (req, res) => {
   res.json({ success: true });
 });
 
-// DELETE /api/admin/users/:id
 adminRouter.delete('/users/:id', (req, res) => {
   if (req.user.id === req.params.id) {
     return res.status(400).json({ error: 'Du kannst deinen eigenen Account nicht löschen.' });
   }
 
-  // Check if target is last admin
   const target = db.prepare('SELECT role FROM users WHERE id = ?').get(req.params.id);
   if (target?.role === 'ADMIN') {
     const adminCount = db.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'ADMIN'").get().count;
@@ -189,7 +184,7 @@ adminRouter.delete('/registration/invite-codes/:id', (req, res) => {
 });
 
 // ==========================================
-// 4. MCP MANAGEMENT (Future-Ready Architecture)
+// 4. MCP MANAGEMENT
 // ==========================================
 adminRouter.get('/mcp', (req, res) => {
   const settings = getAllSettings();
@@ -219,11 +214,12 @@ adminRouter.get('/ai', async (req, res) => {
   const ollamaStatus = await OllamaService.checkStatus();
 
   res.json({
-    baseUrl: settings.ollama_base_url || 'http://localhost:11434',
+    baseUrl: settings.ollama_base_url || 'http://127.0.0.1:11434',
     model: settings.ollama_model || 'llama3.2:latest',
     systemPrompt: settings.system_prompt || '',
     temperature: parseFloat(settings.temperature || '0.7'),
     status: ollamaStatus,
+    availableModels: ollamaStatus.models || [],
   });
 });
 
@@ -237,15 +233,18 @@ adminRouter.post('/ai', async (req, res) => {
 
   logAudit(req.user.id, 'UPDATE_AI_SETTINGS', { baseUrl, model, temperature }, req.ip);
 
-  // Return new status
-  const status = await OllamaService.checkStatus();
-  res.json({ success: true, status });
+  const status = await OllamaService.checkStatus(baseUrl ? baseUrl.trim() : undefined);
+  res.json({ success: true, status, availableModels: status.models || [] });
 });
 
 // Test connection endpoint
 adminRouter.post('/ai/test', async (req, res) => {
-  const status = await OllamaService.checkStatus();
-  res.json(status);
+  const { baseUrl } = req.body || {};
+  const status = await OllamaService.checkStatus(baseUrl ? baseUrl.trim() : undefined);
+  res.json({
+    ...status,
+    availableModels: status.models || [],
+  });
 });
 
 // ==========================================
@@ -257,7 +256,6 @@ adminRouter.get('/logs', (req, res) => {
   res.json({ logs });
 });
 
-// Backup creation
 adminRouter.post('/backup', (req, res) => {
   try {
     const dataDir = process.env.DATA_DIR || path.resolve(process.cwd(), '../data');
@@ -270,7 +268,6 @@ adminRouter.post('/backup', (req, res) => {
     const backupFileName = `backup-${timestamp}.db`;
     const backupFilePath = path.join(backupDir, backupFileName);
 
-    // Use SQLite backup API / vacuum into
     db.exec(`VACUUM INTO '${backupFilePath}';`);
 
     const stats = fs.statSync(backupFilePath);
@@ -288,7 +285,6 @@ adminRouter.post('/backup', (req, res) => {
   }
 });
 
-// List backups
 adminRouter.get('/backups', (req, res) => {
   try {
     const dataDir = process.env.DATA_DIR || path.resolve(process.cwd(), '../data');
@@ -314,7 +310,6 @@ adminRouter.get('/backups', (req, res) => {
   }
 });
 
-// Download backup file
 adminRouter.get('/backups/:filename', (req, res) => {
   const dataDir = process.env.DATA_DIR || path.resolve(process.cwd(), '../data');
   const backupDir = path.join(dataDir, 'backups');
